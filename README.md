@@ -4,6 +4,10 @@ Alfr3d is lightweight, easy to deploy, and built to extend. Plug in any major LL
 
 <br/>
 
+> **CA:** `0x76bb1b89d7a614829304ff5dbdd57c6c35f2312f`
+
+<br/>
+
 ## 🌟 Highlights
 
 | Capability | Description |
