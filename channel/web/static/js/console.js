@@ -5577,8 +5577,83 @@ function getToolIcon(name) {
 }
 
 function loadSkillsView() {
+    loadIntegrationsSection();
     loadToolsSection();
     loadSkillsSection();
+}
+
+// --- Integrations (Robinhood, …) -----------------------------------------
+function loadIntegrationsSection() {
+    const sec = document.getElementById('integrations-section');
+    if (!sec) return;
+    const zh = currentLang === 'zh';
+    sec.innerHTML = `
+        <div class="flex items-center gap-2 mb-3">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">${zh ? '集成' : 'Integrations'}</span>
+        </div>
+        <div id="integrations-list" class="grid gap-3 sm:grid-cols-2"></div>`;
+    const listEl = document.getElementById('integrations-list');
+    fetch('/api/integrations/robinhood').then(r => r.json()).then(data => {
+        listEl.innerHTML = '';
+        listEl.appendChild(buildRobinhoodCard(!!(data && data.authorized), !!(data && data.configured)));
+    }).catch(() => {
+        listEl.innerHTML = '';
+        listEl.appendChild(buildRobinhoodCard(false, false));
+    });
+}
+
+function buildRobinhoodCard(authorized, configured) {
+    const zh = currentLang === 'zh';
+    const card = document.createElement('div');
+    card.className = 'bg-white dark:bg-[#1A1A1A] rounded-xl border border-slate-200 dark:border-white/10 p-4 flex items-start gap-3';
+    const statusText = authorized ? (zh ? '已连接' : 'Connected')
+        : (configured ? (zh ? '待授权' : 'Needs authorization') : (zh ? '未连接' : 'Not connected'));
+    const statusColor = authorized ? 'text-green-500' : (configured ? 'text-amber-500' : 'text-slate-400');
+    const btnLabel = authorized ? (zh ? '重新授权' : 'Reconnect') : (zh ? '连接' : 'Connect');
+    card.innerHTML = `
+        <div class="w-9 h-9 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-chart-line text-green-500 dark:text-green-400 text-sm"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+                <span class="font-medium text-sm text-slate-700 dark:text-slate-200">Robinhood</span>
+                <span class="text-xs ${statusColor}">${statusText}</span>
+            </div>
+            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">${zh ? '智能体投资组合交易（股票）' : 'Agentic portfolio trading (equities)'}</p>
+            <button class="robinhood-connect-btn mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-green-600 hover:bg-green-700 transition-colors">
+                <i class="fas fa-link text-[10px]"></i><span>${btnLabel}</span>
+            </button>
+        </div>`;
+    card.querySelector('.robinhood-connect-btn').addEventListener('click', function () {
+        connectRobinhood(this);
+    });
+    return card;
+}
+
+function connectRobinhood(btn) {
+    const zh = currentLang === 'zh';
+    const span = btn.querySelector('span');
+    const orig = span.textContent;
+    span.textContent = zh ? '连接中…' : 'Connecting…';
+    btn.disabled = true;
+    fetch('/api/integrations/robinhood', { method: 'POST' }).then(r => r.json()).then(data => {
+        if (data.status === 'authorize' && data.auth_url) {
+            window.open(data.auth_url, '_blank');
+            span.textContent = zh ? '已在新标签页打开授权' : 'Authorize in the new tab';
+            setTimeout(loadIntegrationsSection, 8000);
+        } else if (data.status === 'connected') {
+            span.textContent = zh ? '已连接' : 'Connected';
+            setTimeout(loadIntegrationsSection, 500);
+        } else {
+            span.textContent = (zh ? '失败：' : 'Failed: ') + (data.message || '');
+            btn.disabled = false;
+            setTimeout(() => { span.textContent = orig; }, 4000);
+        }
+    }).catch(() => {
+        span.textContent = zh ? '失败' : 'Failed';
+        btn.disabled = false;
+        setTimeout(() => { span.textContent = orig; }, 3000);
+    });
 }
 
 function loadToolsSection() {
