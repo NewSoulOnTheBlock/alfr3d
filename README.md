@@ -1,20 +1,3 @@
-<p align="center"><img src="https://github.com/user-attachments/assets/eca9a9ec-8534-4615-9e0f-96c5ac1d10a3" alt="Alfr3d" width="420" /></p>
-
-<p align="center">
-  <a href="https://github.com/NewSoulOnTheBlock/alfr3d/releases/latest"><img src="https://img.shields.io/github/v/release/NewSoulOnTheBlock/alfr3d?cacheSeconds=3600" alt="Latest release"></a>
-  <a href="https://github.com/NewSoulOnTheBlock/alfr3d/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT"></a>
-  <a href="https://github.com/NewSoulOnTheBlock/alfr3d"><img src="https://img.shields.io/github/stars/NewSoulOnTheBlock/alfr3d?style=flat-square&cacheSeconds=3600" alt="Stars"></a>
-  <a href="https://docs.alfr3d.local/"><img src="https://img.shields.io/badge/Docs-alfr3d.local-blue?style=flat&logo=readthedocs&logoColor=white" alt="Docs"></a>
-</p>
-
-<p align="center">
-  <a href="https://trendshift.io/repositories/25763" target="_blank"><img src="https://trendshift.io/api/badge/repositories/25763" alt="NewSoulOnTheBlock%2FAlfr3d | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-</p>
-
-<p align="center">
-  [English] | [<a href="docs/zh/README.md">中文</a>] | [<a href="docs/zh/README-Hant.md">繁體中文</a>] | [<a href="docs/ja/README.md">日本語</a>]
-</p>
-
 **Alfr3d** is an open-source super AI assistant that proactively plans tasks, controls your computer and external services, creates and runs Skills, builds a personal knowledge base and long-term memory, and grows alongside you through self-evolution — a reference implementation of Agent Harness engineering.
 
 Alfr3d is lightweight, easy to deploy, and built to extend. Plug in any major LLM provider and run it 24/7 on a personal computer or server, across the web and all major IM platforms.
