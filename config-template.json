@@ -13,8 +13,15 @@
   "dashscope_api_key": "",
   "claude_api_key": "",
   "claude_api_base": "https://api.anthropic.com/v1",
+  "claude_oauth_token": "",
+  "claude_auth_mode": "",
   "open_ai_api_key": "",
   "open_ai_api_base": "https://api.openai.com/v1",
+  "codex_oauth_access_token": "",
+  "codex_oauth_refresh_token": "",
+  "codex_oauth_account_id": "",
+  "openai_auth_mode": "",
+  "auth_mode": "",
   "gemini_api_key": "",
   "gemini_api_base": "https://generativelanguage.googleapis.com",
   "voice_to_text": "",
@@ -46,5 +53,9 @@
   "reasoning_effort": "high",
   "knowledge": true,
   "self_evolution_enabled": true,
-  "mcp_tool_retrieval_enabled": false
+  "mcp_tool_retrieval_enabled": true,
+  "mcp_tool_retrieval_threshold": 20,
+  "mcp_tool_retrieval_top_k": 10,
+  "soul_full_prompt": false,
+  "prompt_budgets": {}
 }

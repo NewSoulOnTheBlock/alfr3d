@@ -56,7 +56,14 @@ Recommended product branding (point your domain at the same scripts):
 irm https://get.alfr3d.com/install.ps1 | iex
 ```
 
-Then set a model API key in `config.json` and run `alfr3d chat`. See [One-line install](docs/guide/one-line-install.mdx).
+Then run setup and chat:
+
+```bash
+alfr3d setup    # API keys + business intake (who you are and why you're here)
+alfr3d chat
+```
+
+See [One-line install](docs/guide/one-line-install.mdx).
 
 ### Docker
 
@@ -76,10 +83,26 @@ Once started, open `http://localhost:9899` to access the **Web console** — you
 
 ### CLI (customer entrypoint)
 
-From the project root (or after `pip install -e .`):
+Lean install (recommended for CLI + web console):
 
 ```bash
-# Talk to Alfr3d in the terminal (full agent harness + SOUL identity)
+pip install -r requirements-core.txt
+pip install -e .
+alfr3d setup
+alfr3d chat
+```
+
+Optional channel extras:
+
+```bash
+pip install -r requirements-channels-global.txt   # Telegram / Slack / Discord
+pip install -r requirements-channels-cn.txt       # WeChat / Feishu / DingTalk
+# or everything:
+pip install -r requirements.txt
+```
+
+```bash
+# Talk to Alfr3d in the terminal (full agent harness + lean SOUL.core by default)
 alfr3d chat
 alfr3d chat "What should I focus on this week?"
 alfr3d "How do I build business credit?"
@@ -92,7 +115,7 @@ alfr3d skill install <name>
 alfr3d install-browser
 ```
 
-Put a model API key in `config.json` first (created from `config-template.json` on first chat if missing).
+Set `"soul_full_prompt": true` in `config.json` only if you want the full SOUL.md every turn (higher token cost).
 
 > 💻 Desktop client: the **Alfr3d Desktop client** (macOS / Windows) bundles the backend, ready to use out of the box.
 

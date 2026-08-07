@@ -11,13 +11,15 @@ from cli.commands.backup import backup_command, restore_command
 from cli.commands.robinhood import robinhood
 from cli.commands.quickbooks import quickbooks
 from cli.commands.chat import chat
+from cli.commands.setup import setup
 
 
 HELP_TEXT = """Usage: alfr3d COMMAND [ARGS]...
 
   Alfr3d — personal steward CLI.
 
-Talk to Alfr3d:
+Get started:
+  setup           Interactive setup (API keys + why you're here)
   chat [PROMPT]   Interactive session, or one-shot with a prompt
   alfr3d "…"      Same as chat (any unknown first word is treated as a prompt)
 
@@ -43,19 +45,21 @@ Other:
   version         Show the version
 
 Examples:
+  alfr3d setup
   alfr3d chat
   alfr3d chat "What should I focus on this week?"
   alfr3d "How do I build business credit?"
   alfr3d start
 
-Tip: In a running session, memory commands are also available in chat
-(e.g. /memory status)."""
+Tip: Run `alfr3d setup` once after install. In chat, memory commands are also
+available (e.g. /memory status)."""
 
 
 # Built-in commands that must not be treated as freeform chat prompts.
 _KNOWN_COMMANDS = frozenset({
     "help",
     "version",
+    "setup",
     "chat",
     "start",
     "stop",
@@ -122,6 +126,7 @@ def help_cmd(ctx):
     click.echo(HELP_TEXT.strip())
 
 
+main.add_command(setup)
 main.add_command(chat)
 main.add_command(skill)
 main.add_command(start)

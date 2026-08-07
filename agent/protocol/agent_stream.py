@@ -1031,7 +1031,8 @@ class AgentStreamExecutor:
         all_tools = [tool for tool in self.tools.values() if is_tool_available(tool)]
         try:
             from config import conf
-            if not conf().get("mcp_tool_retrieval_enabled", False):
+            # Default True (Tier A): only filters when MCP tool count > threshold.
+            if not conf().get("mcp_tool_retrieval_enabled", True):
                 return all_tools
 
             from agent.tools.mcp.mcp_tool import McpTool

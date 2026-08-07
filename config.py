@@ -102,6 +102,18 @@ available_setting = {
     "claude_uuid": "",
     # claude api key
     "claude_api_key": "",
+    # Anthropic OAuth / Claude Code setup-token (sk-ant-oat01-…). Prefer over
+    # API key when auth_mode is anthropic_oauth. Also discoverable from env
+    # CLAUDE_CODE_OAUTH_TOKEN or a local Claude CLI login.
+    "claude_oauth_token": "",
+    "claude_auth_mode": "",  # api_key | oauth | anthropic_oauth
+    # OpenAI Codex / ChatGPT OAuth (subscription). Access token is also mirrored
+    # into open_ai_api_key for Bearer auth. Optional refresh/account metadata.
+    "codex_oauth_access_token": "",
+    "codex_oauth_refresh_token": "",
+    "codex_oauth_account_id": "",
+    "openai_auth_mode": "",  # api_key | codex_oauth
+    "auth_mode": "",  # high-level: api_key | anthropic_oauth | codex_oauth
     # Tongyi Qianwen API, see https://help.aliyun.com/document_detail/2587494.html for how to obtain
     "qwen_access_key_id": "",
     "qwen_access_key_secret": "",
@@ -297,9 +309,15 @@ available_setting = {
     # only the most query-relevant ones instead of all of them. Built-in tools
     # are always injected in full; degrades to full injection when disabled,
     # below threshold, or when no embedding provider is available.
-    "mcp_tool_retrieval_enabled": False,    # switch for on-demand MCP tool retrieval
+    # On-demand MCP tool retrieval (default ON). When MCP tool count exceeds
+    # threshold, only the top_k most relevant tools are injected per turn.
+    "mcp_tool_retrieval_enabled": True,
     "mcp_tool_retrieval_threshold": 20,     # only retrieve when MCP tool count exceeds this
     "mcp_tool_retrieval_top_k": 10,         # max relevant MCP tools injected per turn
+    # SOUL injection: False = lean SOUL.core every turn; True = full SOUL.md
+    "soul_full_prompt": False,
+    # Optional per-section character caps for the system prompt (see agent/prompt/budgets.py)
+    "prompt_budgets": {},
 }
 
 
@@ -524,6 +542,8 @@ def load_config():
         "linkai_api_key": "LINKAI_API_KEY",
         "linkai_api_base": "LINKAI_API_BASE",
         "claude_api_key": "CLAUDE_API_KEY",
+        "claude_oauth_token": "CLAUDE_CODE_OAUTH_TOKEN",
+        "codex_oauth_access_token": "CODEX_ACCESS_TOKEN",
         "claude_api_base": "CLAUDE_API_BASE",
         "gemini_api_key": "GEMINI_API_KEY",
         "gemini_api_base": "GEMINI_API_BASE",

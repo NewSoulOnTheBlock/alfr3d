@@ -194,6 +194,10 @@ class ToolManager:
                     except Exception as e:
                         logger.error(f"Error importing class {class_name}: {e}")
 
+                # Register heavy tools lazily (browser / vision / web_search).
+                # Import only when the class is actually needed; failures stay quiet.
+                self._register_lazy_tools(tools_package)
+
                 return len(self.tool_classes) > 0
             return False
         except ImportError:
@@ -202,6 +206,29 @@ class ToolManager:
         except Exception as e:
             logger.error(f"Error loading tools from __init__.__all__: {e}")
             return False
+
+    def _register_lazy_tools(self, tools_package) -> None:
+        """Load optional heavy tools without failing core registration."""
+        lazy_specs = getattr(tools_package, "LAZY_TOOL_SPECS", None) or {}
+        load_fn = getattr(tools_package, "load_lazy_tool_class", None)
+        if not load_fn:
+            return
+        for class_name in lazy_specs:
+            if class_name == "McpTool":
+                # MCP tools are registered dynamically from mcp.json / config.
+                continue
+            try:
+                cls = load_fn(class_name)
+                if (
+                    isinstance(cls, type)
+                    and issubclass(cls, BaseTool)
+                    and cls is not BaseTool
+                ):
+                    temp = cls()
+                    self.tool_classes[temp.name] = cls
+                    logger.debug(f"Lazy-loaded tool: {temp.name} ({class_name})")
+            except Exception as e:
+                logger.debug(f"Lazy tool {class_name} skipped: {e}")
 
     def _load_tools_from_directory(self, tools_dir: str):
         """Dynamically load tool classes from directory"""

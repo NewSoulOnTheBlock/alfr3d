@@ -18,29 +18,12 @@ from typing import Optional
 
 import click
 
+from cli.banner import print_session_line, print_startup_banner
+from cli.setup_state import has_model_credentials, is_setup_complete
 from cli.utils import ensure_sys_path, get_project_root, load_config_json
 
 # Session id shared across REPL turns so memory and conversation persist.
 DEFAULT_CLI_SESSION = "cli_chat"
-
-
-# API-key config fields we accept as "a model is configured".
-_MODEL_KEY_FIELDS = (
-    "open_ai_api_key",
-    "claude_api_key",
-    "deepseek_api_key",
-    "gemini_api_key",
-    "dashscope_api_key",
-    "zhipu_ai_api_key",
-    "moonshot_api_key",
-    "ark_api_key",
-    "minimax_api_key",
-    "mimo_api_key",
-    "qianfan_api_key",
-    "linkai_api_key",
-    "custom_api_key",
-    "baidu_wenxin_api_key",
-)
 
 
 def _echo_err(message: str) -> None:
@@ -55,42 +38,6 @@ def _echo_dim(message: str) -> None:
 
 def _echo_ok(message: str) -> None:
     click.echo(click.style(message, fg="green"))
-
-
-def _is_placeholder(value: str) -> bool:
-    v = (value or "").strip()
-    if not v:
-        return True
-    lowered = v.lower()
-    return lowered in {
-        "your api key",
-        "your_api_key",
-        "sk-xxx",
-        "xxx",
-        "changeme",
-        "replace_me",
-    }
-
-
-def _has_model_credentials(cfg: dict) -> bool:
-    for key in _MODEL_KEY_FIELDS:
-        if not _is_placeholder(str(cfg.get(key, ""))):
-            return True
-    # Multi custom providers
-    for item in cfg.get("custom_providers") or []:
-        if isinstance(item, dict) and not _is_placeholder(str(item.get("api_key", ""))):
-            return True
-    # Env overrides common for customers
-    for env_key in (
-        "OPENAI_API_KEY",
-        "CLAUDE_API_KEY",
-        "ANTHROPIC_API_KEY",
-        "DEEPSEEK_API_KEY",
-        "GEMINI_API_KEY",
-    ):
-        if not _is_placeholder(os.environ.get(env_key, "")):
-            return True
-    return False
 
 
 def _ensure_config_file() -> Optional[str]:
@@ -138,17 +85,14 @@ def _preflight() -> bool:
         )
         return False
 
-    if not _has_model_credentials(cfg):
+    if not has_model_credentials(cfg):
         model = cfg.get("model") or "(unset)"
         _echo_err(
             "No model API key is configured yet.\n"
             f"  Active model setting: {model}\n"
-            "  Open config.json and set the matching key, for example:\n"
-            "    • open_ai_api_key     (OpenAI / compatible)\n"
-            "    • claude_api_key      (Anthropic)\n"
-            "    • deepseek_api_key    (DeepSeek)\n"
-            "    • gemini_api_key      (Google)\n"
-            "  Then run:  alfr3d chat"
+            "  Run the setup wizard (recommended):\n"
+            "    alfr3d setup\n"
+            "  Or set a key in config.json (open_ai_api_key, claude_api_key, deepseek_api_key, …)."
         )
         return False
 
@@ -213,12 +157,42 @@ def _build_context(session_id: str, request_id: str, on_event):
     return ctx
 
 
-def _print_banner(session_id: str, model: str) -> None:
+def _customer_display_name(cfg: dict) -> str:
+    profile = cfg.get("customer_profile") if isinstance(cfg, dict) else None
+    if isinstance(profile, dict):
+        return (
+            str(profile.get("preferred_name") or profile.get("name") or "").strip()
+        )
+    return ""
+
+
+def _maybe_run_setup_gate() -> bool:
+    """Alfred-style: incomplete setup runs the wizard before chat (TTY only).
+
+    Returns False if the user aborted setup without credentials.
+    """
+    cfg = load_config_json()
+    if is_setup_complete(cfg):
+        return True
+    if not sys.stdin.isatty() or not sys.stdout.isatty():
+        # Non-interactive: allow chat if a key exists; otherwise fail preflight.
+        return has_model_credentials(cfg)
+
     click.echo()
-    click.echo(click.style("  Alfr3d", fg="cyan", bold=True) + click.style("  ·  personal steward", fg="bright_black"))
-    click.echo(click.style(f"  Model: {model}  ·  Session: {session_id}", fg="bright_black"))
-    click.echo(click.style("  Type your message.  /exit to leave  ·  /clear for a fresh thread  ·  /help", fg="bright_black"))
+    click.echo(click.style("  Setup required.", fg="cyan", bold=True))
+    click.echo(
+        click.style(
+            "  Let us establish the essentials before Alfr3d comes online.",
+            fg="bright_black",
+        )
+    )
     click.echo()
+    from cli.commands.setup import run_setup
+
+    code = run_setup(force=False)
+    if code != 0 and not has_model_credentials():
+        return False
+    return has_model_credentials() or is_setup_complete()
 
 
 def _print_repl_help() -> None:
@@ -273,7 +247,7 @@ def _run_turn(bridge, prompt: str, session_id: str, clear_history: bool = False)
             return 1
         if content:
             click.echo()
-            click.echo(click.style("Alfr3d: ", fg="green", bold=True) + str(content))
+            click.echo(click.style("Alfr3d ▸ ", fg="green", bold=True) + str(content))
             click.echo()
     else:
         click.echo()
@@ -283,11 +257,22 @@ def _run_turn(bridge, prompt: str, session_id: str, clear_history: bool = False)
     return 0
 
 
-def run_chat(prompt: Optional[str] = None, session_id: Optional[str] = None) -> int:
+def run_chat(
+    prompt: Optional[str] = None,
+    session_id: Optional[str] = None,
+    *,
+    no_banner: bool = False,
+    skip_setup_gate: bool = False,
+) -> int:
     """Programmatic entry used by tests and the click command.
 
     Returns a process exit code.
     """
+    # Alfred boot: incomplete setup opens the wizard before the agent comes online.
+    if not skip_setup_gate and not _maybe_run_setup_gate():
+        if not _preflight():
+            return 2
+
     if not _preflight():
         return 2
 
@@ -302,27 +287,41 @@ def run_chat(prompt: Optional[str] = None, session_id: Optional[str] = None) -> 
     from config import conf
 
     model = conf().get("model") or "default"
+    cfg = load_config_json()
+    user_name = _customer_display_name(cfg)
 
-    # One-shot
+    # One-shot — skip full boot theater (customers want the answer, not a show).
     if prompt is not None and str(prompt).strip():
-        if sys.stdout.isatty():
-            _echo_dim(f"Alfr3d · {model}")
+        if sys.stdout.isatty() and not no_banner:
+            _echo_dim(f"Alfr3d · {model}" + (f" · {user_name}" if user_name else ""))
         return _run_turn(bridge, str(prompt).strip(), session_id)
 
     # Interactive REPL
     if not sys.stdin.isatty():
-        # Piped input: read all, one shot
         data = sys.stdin.read().strip()
         if not data:
             _echo_err("No input provided.")
             return 2
         return _run_turn(bridge, data, session_id)
 
-    _print_banner(session_id, model)
+    # Full Alfred boot sequence before the REPL.
+    if not no_banner:
+        print_startup_banner()
+        print_session_line(user_name=user_name, model=model, mode="Personal Steward")
+        click.echo(
+            click.style(
+                "  Type your message.  /exit to leave  ·  /clear  ·  /help",
+                fg="bright_black",
+            )
+        )
+        click.echo()
+    else:
+        _echo_dim(f"Alfr3d · {model} · session {session_id}")
+
     clear_next = False
     while True:
         try:
-            click.echo(click.style("You: ", fg="blue", bold=True), nl=False)
+            click.echo(click.style("you ▸ ", fg="blue", bold=True), nl=False)
             line = input()
         except (EOFError, KeyboardInterrupt):
             click.echo()
@@ -347,7 +346,6 @@ def run_chat(prompt: Optional[str] = None, session_id: Optional[str] = None) -> 
 
         code = _run_turn(bridge, text, session_id, clear_history=clear_next)
         clear_next = False
-        # Non-fatal turn errors keep the REPL open for customers.
         if code not in (0, 130):
             _echo_dim("You can try again, or /exit to leave.")
         if code == 130:
@@ -363,7 +361,12 @@ def run_chat(prompt: Optional[str] = None, session_id: Optional[str] = None) -> 
     default=None,
     help="Conversation session id (default: cli_chat, or ALFR3D_SESSION).",
 )
-def chat(prompt, session_id):
+@click.option(
+    "--no-banner",
+    is_flag=True,
+    help="Skip the boot sequence (also: ALFR3D_NO_BANNER=1).",
+)
+def chat(prompt, session_id, no_banner):
     """Talk to Alfr3d in the terminal (full agent + SOUL).
 
     \b
@@ -373,5 +376,9 @@ def chat(prompt, session_id):
       alfr3d "What is a DUNS number?"
     """
     message = " ".join(prompt).strip() if prompt else None
-    code = run_chat(prompt=message or None, session_id=session_id)
+    code = run_chat(
+        prompt=message or None,
+        session_id=session_id,
+        no_banner=no_banner,
+    )
     sys.exit(code)

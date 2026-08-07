@@ -93,9 +93,14 @@ install_python_package() {
   local py="$1"
   step "Installing Alfr3d package (editable)..."
   "$py" -m pip install --upgrade pip setuptools wheel
-  if [[ "$SKIP_DEPS" != "1" && -f "$INSTALL_DIR/requirements.txt" ]]; then
-    step "Installing product dependencies (this may take a few minutes)..."
-    "$py" -m pip install -r "$INSTALL_DIR/requirements.txt"
+  if [[ "$SKIP_DEPS" != "1" ]]; then
+    if [[ -f "$INSTALL_DIR/requirements-core.txt" ]]; then
+      step "Installing core dependencies (lean install)..."
+      "$py" -m pip install -r "$INSTALL_DIR/requirements-core.txt"
+    elif [[ -f "$INSTALL_DIR/requirements.txt" ]]; then
+      step "Installing product dependencies (this may take a few minutes)..."
+      "$py" -m pip install -r "$INSTALL_DIR/requirements.txt"
+    fi
   fi
   "$py" -m pip install -e "$INSTALL_DIR"
 }
@@ -177,8 +182,8 @@ main() {
   echo >&2
   echo "Next steps:" >&2
   echo "  1. Open a new terminal (so PATH updates apply)" >&2
-  echo "  2. Edit config and set a model API key:" >&2
-  echo "       $INSTALL_DIR/config.json" >&2
+  echo "  2. Run setup (API keys + why you're here):" >&2
+  echo "       alfr3d setup" >&2
   echo "  3. Talk to Alfr3d:" >&2
   echo "       alfr3d chat" >&2
   echo "  4. Or start the full service:" >&2

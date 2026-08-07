@@ -18,6 +18,7 @@ DEFAULT_AGENT_FILENAME = "AGENT.md"
 DEFAULT_USER_FILENAME = "USER.md"
 DEFAULT_RULE_FILENAME = "RULE.md"
 DEFAULT_MEMORY_FILENAME = "MEMORY.md"
+DEFAULT_BUSINESS_FILENAME = "BUSINESS.md"
 DEFAULT_BOOTSTRAP_FILENAME = "BOOTSTRAP.md"
 
 
@@ -123,6 +124,7 @@ def load_context_files(workspace_dir: str, files_to_load: Optional[List[str]] = 
         files_to_load = [
             DEFAULT_AGENT_FILENAME,
             DEFAULT_USER_FILENAME,
+            DEFAULT_BUSINESS_FILENAME,   # Customer business profile from `alfr3d setup`
             DEFAULT_RULE_FILENAME,
             DEFAULT_MEMORY_FILENAME,     # Long-term memory (frozen snapshot)
             DEFAULT_BOOTSTRAP_FILENAME,  # Only exists when onboarding is incomplete

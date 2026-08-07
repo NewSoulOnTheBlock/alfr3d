@@ -1,8 +1,13 @@
-# Import base tool
+"""Tools package — core always loaded; heavy tools registered lazily.
+
+Tier A lean: browser, vision, web_search, MCP are not imported until
+ToolManager asks for them (or create_tool is called by name).
+"""
+
 from agent.tools.base_tool import BaseTool
 from agent.tools.tool_manager import ToolManager
 
-# Import file operation tools
+# ---- Core tools (always available; small import graph) ----
 from agent.tools.read.read import Read
 from agent.tools.write.write import Write
 from agent.tools.edit.edit import Edit
@@ -10,144 +15,97 @@ from agent.tools.bash.bash import Bash
 from agent.tools.ls.ls import Ls
 from agent.tools.send.send import Send
 from agent.tools.search_files.search_files import SearchFiles
-
-# Import memory tools
 from agent.tools.memory.memory_search import MemorySearchTool
 from agent.tools.memory.memory_get import MemoryGetTool
-
-# Import self-evolution tools
 from agent.tools.evolution_undo.evolution_undo import EvolutionUndoTool
-
-# Import sub agent tools
 from agent.tools.subagent.subagent import SubagentTool
 
-# Import tools with optional dependencies
-def _import_optional_tools():
-    """Import tools that have optional dependencies"""
-    from common.log import logger
-    tools = {}
-    
-    # EnvConfig Tool (requires python-dotenv)
+# Soft-optional but still "core product" — import with quiet fallback
+EnvConfig = None
+SchedulerTool = None
+WebFetch = None
+
+try:
+    from agent.tools.env_config.env_config import EnvConfig  # noqa: F401
+except Exception:
+    pass
+
+try:
+    from agent.tools.scheduler.scheduler_tool import SchedulerTool  # noqa: F401
+except Exception:
+    pass
+
+try:
+    from agent.tools.web_fetch.web_fetch import WebFetch  # noqa: F401
+except Exception:
+    pass
+
+
+# ---- Lazy / heavy tools (import path, class name) ----
+# Registered by name only; ToolManager imports on first use.
+LAZY_TOOL_SPECS = {
+    "WebSearch": ("agent.tools.web_search.web_search", "WebSearch"),
+    "Vision": ("agent.tools.vision.vision", "Vision"),
+    "BrowserTool": ("agent.tools.browser.browser_tool", "BrowserTool"),
+    "McpTool": ("agent.tools.mcp.mcp_tool", "McpTool"),
+}
+
+_lazy_cache = {}
+
+
+def load_lazy_tool_class(class_name: str):
+    """Import a heavy tool class once. Returns None if unavailable."""
+    if class_name in _lazy_cache:
+        return _lazy_cache[class_name]
+    spec = LAZY_TOOL_SPECS.get(class_name)
+    if not spec:
+        _lazy_cache[class_name] = None
+        return None
+    module_path, attr = spec
     try:
-        from agent.tools.env_config.env_config import EnvConfig
-        tools['EnvConfig'] = EnvConfig
-    except ImportError as e:
-        logger.error(
-            f"[Tools] EnvConfig tool not loaded - missing dependency: {e}\n"
-            f"  To enable environment variable management, run:\n"
-            f"    pip install python-dotenv>=1.0.0"
-        )
+        import importlib
+        mod = importlib.import_module(module_path)
+        cls = getattr(mod, attr, None)
+        _lazy_cache[class_name] = cls
+        return cls
     except Exception as e:
-        logger.error(f"[Tools] EnvConfig tool failed to load: {e}")
-    
-    # Scheduler Tool (requires croniter)
-    try:
-        from agent.tools.scheduler.scheduler_tool import SchedulerTool
-        tools['SchedulerTool'] = SchedulerTool
-    except ImportError as e:
-        logger.error(
-            f"[Tools] Scheduler tool not loaded - missing dependency: {e}\n"
-            f"  To enable scheduled tasks, run:\n"
-            f"    pip install croniter>=2.0.0"
-        )
-    except Exception as e:
-        logger.error(f"[Tools] Scheduler tool failed to load: {e}")
-
-    # WebSearch Tool (conditionally loaded based on API key availability at init time)
-    try:
-        from agent.tools.web_search.web_search import WebSearch
-        tools['WebSearch'] = WebSearch
-    except ImportError as e:
-        logger.error(f"[Tools] WebSearch not loaded - missing dependency: {e}")
-    except Exception as e:
-        logger.error(f"[Tools] WebSearch failed to load: {e}")
-
-    # WebFetch Tool
-    try:
-        from agent.tools.web_fetch.web_fetch import WebFetch
-        tools['WebFetch'] = WebFetch
-    except ImportError as e:
-        logger.error(f"[Tools] WebFetch not loaded - missing dependency: {e}")
-    except Exception as e:
-        logger.error(f"[Tools] WebFetch failed to load: {e}")
-
-    # Vision Tool (conditionally loaded based on API key availability)
-    try:
-        from agent.tools.vision.vision import Vision
-        tools['Vision'] = Vision
-    except ImportError as e:
-        logger.error(f"[Tools] Vision not loaded - missing dependency: {e}")
-    except Exception as e:
-        logger.error(f"[Tools] Vision failed to load: {e}")
-
-    return tools
-
-# Load optional tools
-_optional_tools = _import_optional_tools()
-EnvConfig = _optional_tools.get('EnvConfig')
-SchedulerTool = _optional_tools.get('SchedulerTool')
-WebSearch = _optional_tools.get('WebSearch')
-WebFetch = _optional_tools.get('WebFetch')
-Vision = _optional_tools.get('Vision')
-GoogleSearch = _optional_tools.get('GoogleSearch')
-FileSave = _optional_tools.get('FileSave')
-Terminal = _optional_tools.get('Terminal')
-
-
-# BrowserTool: playwright is soft-imported inside browser_service, so this
-# import always succeeds even without playwright. Readiness (playwright pkg /
-# system Chrome / downloaded Chromium) is checked at call time in BrowserTool.
-def _import_browser_tool():
-    from common.log import logger
-    try:
-        from agent.tools.browser.browser_tool import BrowserTool
-        return BrowserTool
-    except Exception as e:
-        logger.error(f"[Tools] BrowserTool failed to load: {e}")
+        from common.log import logger
+        logger.debug(f"[Tools] Lazy tool {class_name} not loaded: {e}")
+        _lazy_cache[class_name] = None
         return None
 
-BrowserTool = _import_browser_tool()
 
-# MCP Tools (no extra dependencies, loaded on demand)
-def _import_mcp_tools():
-    """导入 MCP 工具模块（无额外依赖，按需加载）"""
-    from common.log import logger
-    try:
-        from agent.tools.mcp.mcp_tool import McpTool
-        from agent.tools.mcp.mcp_client import McpClientRegistry
-        return {'McpTool': McpTool, 'McpClientRegistry': McpClientRegistry}
-    except Exception as e:
-        logger.warning(f"[Tools] MCP tools not loaded: {e}")
-        return {}
+# Module-level names for backward compatibility (may be None until first load)
+def __getattr__(name: str):
+    if name in LAZY_TOOL_SPECS:
+        return load_lazy_tool_class(name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
-_mcp_tools = _import_mcp_tools()
-McpTool = _mcp_tools.get('McpTool')
-McpClientRegistry = _mcp_tools.get('McpClientRegistry')
 
-# Export all tools (including optional ones that might be None)
+# Classes ToolManager should discover from this package (core only).
+# Lazy tools are appended by ToolManager after optional import.
 __all__ = [
-    'BaseTool',
-    'ToolManager',
-    'Read',
-    'Write',
-    'Edit',
-    'Bash',
-    'Ls',
-    'Send',
-    'SearchFiles',
-    'MemorySearchTool',
-    'MemoryGetTool',
-    'EvolutionUndoTool',
-    'SubagentTool',
-    'EnvConfig',
-    'SchedulerTool',
-    'WebSearch',
-    'WebFetch',
-    'Vision',
-    'BrowserTool',
-    'McpTool',
+    "BaseTool",
+    "ToolManager",
+    "Read",
+    "Write",
+    "Edit",
+    "Bash",
+    "Ls",
+    "Send",
+    "SearchFiles",
+    "MemorySearchTool",
+    "MemoryGetTool",
+    "EvolutionUndoTool",
+    "SubagentTool",
+    "EnvConfig",
+    "SchedulerTool",
+    "WebFetch",
+    # Lazy names listed so getattr / documentation stay stable
+    "WebSearch",
+    "Vision",
+    "BrowserTool",
+    "McpTool",
+    "LAZY_TOOL_SPECS",
+    "load_lazy_tool_class",
 ]
-
-"""
-Tools module for Agent.
-"""

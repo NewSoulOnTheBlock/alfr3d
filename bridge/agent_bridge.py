@@ -73,21 +73,6 @@ class AgentLLMModel(LLMModel):
     LLM Model adapter that uses ALFR3D's existing bot infrastructure
     """
 
-    _MODEL_BOT_TYPE_MAP = {
-        "wenxin": const.BAIDU, "wenxin-4": const.BAIDU,
-        "xunfei": const.XUNFEI, const.QWEN: const.QWEN_DASHSCOPE,
-        const.QIANFAN: const.QIANFAN,
-        const.MODELSCOPE: const.MODELSCOPE,
-    }
-    _MODEL_PREFIX_MAP = [
-        ("qwen", const.QWEN_DASHSCOPE), ("qwq", const.QWEN_DASHSCOPE), ("qvq", const.QWEN_DASHSCOPE),
-        ("gemini", const.GEMINI), ("glm", const.ZHIPU_AI), ("claude", const.CLAUDEAPI),
-        ("moonshot", const.MOONSHOT), ("kimi", const.MOONSHOT),
-        ("doubao", const.DOUBAO), ("deepseek", const.DEEPSEEK),
-        ("ernie", const.QIANFAN),
-        ("mimo-", const.MIMO),
-    ]
-
     def __init__(self, bridge: Bridge, bot_type: str = "chat"):
         super().__init__(model=conf().get("model") or const.DEFAULT_MODEL)
         self.bridge = bridge
@@ -104,31 +89,9 @@ class AgentLLMModel(LLMModel):
         pass
 
     def _resolve_bot_type(self, model_name: str) -> str:
-        """Resolve bot type from model name, matching Bridge.__init__ logic."""
-        if conf().get("use_linkai", False) and conf().get("linkai_api_key"):
-            return const.LINKAI
-        # Support custom bot type configuration
-        configured_bot_type = conf().get("bot_type")
-        if configured_bot_type:
-            return configured_bot_type
-       
-        if not model_name or not isinstance(model_name, str):
-            return const.OPENAI
-        if model_name in self._MODEL_BOT_TYPE_MAP:
-            return self._MODEL_BOT_TYPE_MAP[model_name]
-        if model_name.lower().startswith("minimax") or model_name in ["abab6.5-chat"]:
-            return const.MiniMax
-        if model_name in [const.QWEN_TURBO, const.QWEN_PLUS, const.QWEN_MAX]:
-            return const.QWEN_DASHSCOPE
-        if model_name in [const.MOONSHOT, "moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k"]:
-            return const.MOONSHOT
-        if conf().get("bot_type") == "modelscope":
-            return const.MODELSCOPE
-        lowered_model = model_name.lower()
-        for prefix, btype in self._MODEL_PREFIX_MAP:
-            if lowered_model.startswith(prefix):
-                return btype
-        return const.OPENAI
+        """Resolve bot type from model name via the shared provider registry."""
+        from models.provider_registry import resolve_bot_type
+        return resolve_bot_type(model_name)
 
     def _normalized_reasoning_effort(self):
         """Return the active model's effort value after config resolution."""

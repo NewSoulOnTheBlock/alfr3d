@@ -40,8 +40,11 @@ class ChatGPTBot(Bot, OpenAIImage, OpenAICompatibleBot):
             # with automatic fallback to the legacy custom_api_key/base fields.
             self._api_key, self._api_base, custom_model = resolve_custom_credentials()
         else:
-            self._api_key = conf().get("open_ai_api_key")
+            from common.oauth_credentials import resolve_openai_credential
+            token, mode = resolve_openai_credential(conf().get)
+            self._api_key = token or conf().get("open_ai_api_key")
             self._api_base = conf().get("open_ai_api_base") or None
+            self._openai_auth_mode = mode
         self._proxy = conf().get("proxy") or None
         self._http_client = OpenAIHTTPClient(
             api_key=self._api_key,
@@ -82,7 +85,9 @@ class ChatGPTBot(Bot, OpenAIImage, OpenAICompatibleBot):
             api_base = custom_base
             model = custom_model or conf().get("model", "gpt-3.5-turbo")
         else:
-            api_key = conf().get("open_ai_api_key")
+            from common.oauth_credentials import resolve_openai_credential
+            token, _mode = resolve_openai_credential(conf().get)
+            api_key = token or conf().get("open_ai_api_key")
             api_base = conf().get("open_ai_api_base")
             model = conf().get("model", "gpt-3.5-turbo")
         return {

@@ -1,0 +1,13 @@
+# Global IM channels (Telegram, Slack, Discord).
+# Install on top of core:
+#   pip install -r requirements-core.txt -r requirements-channels-global.txt
+
+# telegram bot
+python-telegram-bot
+# slack bot
+slack_bolt
+# discord bot
+discord.py
+# websocket helpers used by some channel modes
+websocket-client>=1.4.0
+pycryptodome

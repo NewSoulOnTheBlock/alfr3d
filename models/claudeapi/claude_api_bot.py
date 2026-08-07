@@ -37,7 +37,26 @@ class ClaudeAPIBot(Bot, OpenAIImage):
 
     @property
     def api_key(self):
-        return conf().get("claude_api_key")
+        """Active Claude credential (API key or OAuth setup-token)."""
+        from common.oauth_credentials import resolve_claude_credential
+        token, _mode = resolve_claude_credential(conf().get)
+        return token or conf().get("claude_api_key")
+
+    @property
+    def auth_mode(self) -> str:
+        from common.oauth_credentials import resolve_claude_credential
+        _token, mode = resolve_claude_credential(conf().get)
+        return mode
+
+    def _build_headers(self) -> dict:
+        from common.oauth_credentials import anthropic_request_headers
+        token = self.api_key
+        if not token:
+            raise Exception(
+                "No Anthropic credential configured. "
+                "Set claude_api_key or claude_oauth_token, or run `alfr3d setup`."
+            )
+        return anthropic_request_headers(token, self.auth_mode)
 
     @property
     def api_base(self):
@@ -92,12 +111,7 @@ class ClaudeAPIBot(Bot, OpenAIImage):
         try:
             actual_model = self._model_mapping(conf().get("model"))
 
-            # Prepare headers
-            headers = {
-                "x-api-key": self.api_key,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json"
-            }
+            headers = self._build_headers()
 
             # Extract system prompt if present and prepare Claude-compatible messages
             system_prompt = conf().get("character_desc", "")
@@ -273,11 +287,7 @@ class ClaudeAPIBot(Bot, OpenAIImage):
                 }],
             }
 
-            headers = {
-                "x-api-key": self.api_key,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
-            }
+            headers = self._build_headers()
             proxies = {"http": self.proxy, "https": self.proxy} if self.proxy else None
             resp = requests.post(f"{self.api_base}/messages",
                                  headers=headers, json=data, proxies=proxies)
@@ -400,12 +410,7 @@ class ClaudeAPIBot(Bot, OpenAIImage):
 
     def _handle_sync_response(self, request_params):
         """Handle synchronous Claude API response"""
-        # Prepare headers
-        headers = {
-            "x-api-key": self.api_key,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json"
-        }
+        headers = self._build_headers()
 
         # Make HTTP request
         proxies = {"http": self.proxy, "https": self.proxy} if self.proxy else None
@@ -472,12 +477,7 @@ class ClaudeAPIBot(Bot, OpenAIImage):
 
     def _handle_stream_response(self, request_params):
         """Handle streaming Claude API response using HTTP requests"""
-        # Prepare headers
-        headers = {
-            "x-api-key": self.api_key,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json"
-        }
+        headers = self._build_headers()
 
         # Add stream parameter
         request_params["stream"] = True

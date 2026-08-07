@@ -211,7 +211,12 @@ function Install-PythonPackage($PythonInfo) {
     Invoke-Python $PythonInfo @("-m", "pip", "install", "--upgrade", "pip", "setuptools", "wheel")
     if (-not $SkipDeps) {
         $req = Join-Path $InstallDir "requirements.txt"
-        if (Test-Path $req) {
+        # Prefer lean core deps; full channel extras are optional.
+        $reqCore = Join-Path $InstallDir "requirements-core.txt"
+        if (Test-Path $reqCore) {
+            Write-Step "Installing core dependencies (lean install)..."
+            Invoke-Python $PythonInfo @("-m", "pip", "install", "-r", $reqCore)
+        } elseif (Test-Path $req) {
             Write-Step "Installing product dependencies (this may take a few minutes)..."
             Invoke-Python $PythonInfo @("-m", "pip", "install", "-r", $req)
         }
@@ -310,8 +315,8 @@ Write-Ok "Alfr3d installed."
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Cyan
 Write-Host "  1. Open a new terminal (so PATH updates apply)"
-Write-Host "  2. Edit config and set a model API key:"
-Write-Host "       $InstallDir\config.json"
+Write-Host "  2. Run setup (API keys + why you're here):"
+Write-Host "       alfr3d setup"
 Write-Host "  3. Talk to Alfr3d:"
 Write-Host "       alfr3d chat"
 Write-Host "       alfr3d `"What should I focus on this week?`""

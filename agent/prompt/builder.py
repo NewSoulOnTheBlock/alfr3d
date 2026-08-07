@@ -116,52 +116,67 @@ def build_agent_system_prompt(
     Returns:
         The full system prompt.
     """
+    from agent.prompt.budgets import (
+        apply_section_budget,
+        apply_total_budget,
+        get_budgets,
+    )
+
+    budgets = get_budgets()
     sections = []
+
+    def _push(key: str, lines: list) -> None:
+        if not lines:
+            return
+        sections.extend(apply_section_budget(lines, budgets.get(key, 10_000)))
 
     # 0. Immutable base personality (main agent only). Sub agents pass
     # context_files=None and must not inherit the full steward persona.
+    # Default: SOUL.core (lean). Full SOUL only when soul_full_prompt is on.
     if context_files is not None:
         from agent.prompt.soul import build_soul_section
-        sections.extend(build_soul_section(language))
+        _push("soul", build_soul_section(language))
 
     # 1. Tooling (core capabilities)
     if tools:
-        sections.extend(_build_tooling_section(tools, language))
+        _push("tools", _build_tooling_section(tools, language))
 
     # 2. Skills (right after tools, since they need the read tool)
     if skill_manager:
-        sections.extend(_build_skills_section(skill_manager, tools, language))
+        _push("skills", _build_skills_section(skill_manager, tools, language))
 
     # 3. Memory (standalone memory capability)
     if memory_manager:
-        sections.extend(_build_memory_section(memory_manager, tools, language))
+        _push("memory", _build_memory_section(memory_manager, tools, language))
 
     # 3.5 Knowledge (structured knowledge base)
     if conf().get("knowledge", True):
-        sections.extend(_build_knowledge_section(workspace_dir, language))
+        _push("knowledge", _build_knowledge_section(workspace_dir, language))
 
     # 4. Workspace (working environment description). Two of its blocks only
     # hold when the context files were actually loaded, which sub agents skip.
-    sections.extend(
-        _build_workspace_section(workspace_dir, language, bool(context_files))
+    _push(
+        "workspace",
+        _build_workspace_section(workspace_dir, language, bool(context_files)),
     )
 
     # 5. User identity (if present)
     if user_identity:
-        sections.extend(_build_user_identity_section(user_identity, language))
+        _push("user_identity", _build_user_identity_section(user_identity, language))
 
     # 6. Project context files (AGENT.md, USER.md, RULE.md — surface identity
     # and rules on top of immutable SOUL.md)
     if context_files:
-        sections.extend(_build_context_files_section(context_files, language))
+        _push("context_files", _build_context_files_section(context_files, language))
 
     # 7. Runtime info (meta info, goes last)
     if runtime_info:
-        sections.extend(_build_runtime_section(runtime_info, language))
+        _push("runtime", _build_runtime_section(runtime_info, language))
 
     # 8. Response language (always appended, independent of the skeleton language)
-    sections.extend(_build_response_language_section(language))
+    _push("response_language", _build_response_language_section(language))
 
+    sections = apply_total_budget(sections, budgets.get("total", 28000))
     return "\n".join(sections)
 
 
@@ -622,6 +637,7 @@ def _build_workspace_section(
                 "- ✅ `SOUL.md`: immutable base personality (injected from the product; never edit)",
                 "- ✅ `AGENT.md`: loaded - surface identity and relationship notes on top of SOUL.md. Update only details that do not conflict with SOUL.md",
                 "- ✅ `USER.md`: loaded - the user's identity info. When the user changes how they're addressed, their name, etc., `edit` this file",
+                "- ✅ `BUSINESS.md`: loaded when present - why the user set up Alfr3d (business stage, intent, focus). Tailor advice to this stage",
                 "- ✅ `RULE.md`: loaded - workspace guide and rules; follow them strictly",
                 "- ✅ `MEMORY.md`: loaded - long-term memory index",
                 "",
@@ -632,6 +648,7 @@ def _build_workspace_section(
                 "- Be genuinely helpful; prefer calm competence over performative enthusiasm",
                 "- Keep replies well-structured and focused. Use **bold**, lists and sections when they improve clarity",
                 "- Avoid internet slang, empty cheerleading, and excessive emoji; dry understated wit is preferred",
+                "- If BUSINESS.md is loaded, match advice to their stage (learning vs launching vs operating) — never assume they already run a company",
                 "",
             ]
     else:
@@ -666,6 +683,7 @@ def _build_workspace_section(
                 "- ✅ `SOUL.md`: 不可变的基础人格（产品内置注入，禁止修改）",
                 "- ✅ `AGENT.md`: 已加载 - 在 SOUL.md 之上的表层身份与关系备注；仅可更新不与 SOUL.md 冲突的细节",
                 "- ✅ `USER.md`: 已加载 - 用户的身份信息。当用户修改称呼、姓名等身份信息时，用 `edit` 更新此文件",
+                "- ✅ `BUSINESS.md`: 若存在则已加载 - 用户为何安装 Alfr3d（阶段、意图、重点）；按阶段给建议",
                 "- ✅ `RULE.md`: 已加载 - 工作空间使用指南和规则，请严格遵循",
                 "- ✅ `MEMORY.md`: 已加载 - 长期记忆索引",
                 "",
@@ -676,6 +694,7 @@ def _build_workspace_section(
                 "- 做真正有帮助的助手；以冷静胜任为主，避免表演式热情",
                 "- 回复应结构清晰、重点突出。需要时善用 **加粗**、列表、分段",
                 "- 避免网络俚语、空洞打气和过量 emoji；偏好克制、干练的英式幽默分寸",
+                "- 若已加载 BUSINESS.md，按用户阶段给建议（学习 / 启动 / 经营），不要默认对方已在运营公司",
                 "",
             ]
 

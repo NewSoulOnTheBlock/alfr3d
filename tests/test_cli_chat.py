@@ -64,9 +64,11 @@ class TestChatPreflight(unittest.TestCase):
             self.assertFalse(ok)
 
     def test_has_model_credentials_detects_key(self):
-        self.assertTrue(chat_mod._has_model_credentials({"open_ai_api_key": "sk-test"}))
-        self.assertFalse(chat_mod._has_model_credentials({"open_ai_api_key": "YOUR API KEY"}))
-        self.assertFalse(chat_mod._has_model_credentials({}))
+        from cli.setup_state import has_model_credentials
+
+        self.assertTrue(has_model_credentials({"open_ai_api_key": "sk-test"}))
+        self.assertFalse(has_model_credentials({"open_ai_api_key": "YOUR API KEY"}))
+        self.assertFalse(has_model_credentials({}))
 
 
 if __name__ == "__main__":
