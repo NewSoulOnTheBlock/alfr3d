@@ -49,5 +49,8 @@ services:
       AGENT_MAX_CONTEXT_TURNS: 20
       AGENT_MAX_STEPS: 20
       SELF_EVOLUTION_ENABLED: 'True'
+      # Credit Builder (skill): Lob API key for certified-mail dispute letters.
+      # Use a test_ key first — test keys mail nothing. See docs/tools/credit-builder.mdx
+      LOB_API_KEY: ''
     volumes:
       - ./alfr3d:/home/agent/alfr3d
