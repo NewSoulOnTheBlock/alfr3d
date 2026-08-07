@@ -15,6 +15,7 @@ Alfr3d is lightweight, easy to deploy, and built to extend. Plug in any major LL
 | Skills | One-click install from Skill Hub, GitHub, ClawHub; or create custom skills via natural-language conversation |
 | Tools | Built-in file I/O, terminal, browser, scheduler, memory retrieval, web search, and 10+ more tools — with native MCP integration |
 | Trading | Manage a Robinhood **Agentic portfolio** — read holdings and live quotes, and review, place, or cancel equity trades via the Robinhood Trading MCP |
+| Bookkeeping | Keep the books in **QuickBooks Online** — read accounts and transactions, run reports (P&L, balance sheet, cash flow), and record or correct entries via the QuickBooks Online MCP |
 | Channels | Integrates with Web, WeChat, Feishu, DingTalk, WeCom, QQ, Official Accounts, Telegram, and Slack |
 | Multimodal | First-class support for text, images, voice, and files — recognition, generation, and delivery |
 | Models | Claude, GPT, Gemini, DeepSeek, Qwen, GLM, Kimi, MiniMax, Doubao, and more — swap providers from the Web console with one click |
@@ -162,6 +163,38 @@ for full setup.
 > responsible for every order it places on your behalf. Only fund the Agentic
 > account with what you are comfortable letting an agent trade, and review activity
 > regularly.
+
+<br/>
+
+## 📒 QuickBooks Bookkeeping
+
+Alfr3d can keep the books in **QuickBooks Online** through Intuit's
+[QuickBooks Online MCP server](https://github.com/intuit/quickbooks-online-mcp-server).
+It reads accounts, customers, vendors, and transactions, runs financial reports
+(P&L, balance sheet, cash flow, trial balance, aged receivables/payables), and —
+with write access — records, edits, and corrects entries.
+
+The server is Node/stdio, so it's built into the image on demand:
+
+```bash
+docker compose -f docker/docker-compose.yml build --build-arg INSTALL_QUICKBOOKS=true
+alfr3d quickbooks connect --env-file /path/to/.env   # from the Intuit OAuth handshake
+alfr3d restart
+```
+
+Then ask Alfr3d things like *"run last month's P&L"* or *"log a $420 utilities
+bill from City Power."* Check state with `alfr3d quickbooks status`. See
+[docs/tools/quickbooks.mdx](docs/tools/quickbooks.mdx) for full setup.
+
+- **One company per instance** in v1; write access is configurable
+  (read-only → full read/write/delete).
+- **~144 tools** across ~29 accounting entities; Alfr3d uses on-demand tool
+  retrieval so the agent stays focused.
+
+> ⚠️ **These are real books.** With write access, Alfr3d can create, edit, and
+> **delete** records, and edits to posted transactions are hard to reverse. Alfr3d
+> is not a licensed accountant and does not provide tax or audit advice; review
+> its changes.
 
 <br/>
 

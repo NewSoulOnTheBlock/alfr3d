@@ -1,0 +1,9 @@
+{
+  "//": "QuickBooks Online MCP — example config. Prefer `alfr3d quickbooks connect`, which writes this entry AND stores credentials in a persisted .env (the server rotates its refresh token into that file). Credentials do NOT go here. Requires the image built with --build-arg INSTALL_QUICKBOOKS=true. See docs/tools/quickbooks.mdx.",
+  "mcpServers": {
+    "quickbooks": {
+      "command": "node",
+      "args": ["/opt/quickbooks-mcp/dist/index.js"]
+    }
+  }
+}

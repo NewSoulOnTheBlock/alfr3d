@@ -9,6 +9,7 @@ from cli.commands.install import install_browser
 from cli.commands.knowledge import knowledge
 from cli.commands.backup import backup_command, restore_command
 from cli.commands.robinhood import robinhood
+from cli.commands.quickbooks import quickbooks
 
 
 HELP_TEXT = """Usage: alfr3d COMMAND [ARGS]...
@@ -30,6 +31,7 @@ Commands:
   restore  Restore a Alfr3d backup.
   install-browser  Install browser tool (Playwright + Chromium).
   robinhood  Connect to the Robinhood Trading MCP.
+  quickbooks  Connect to the QuickBooks Online MCP.
 
 Tip: Memory index management lives in chat — send /memory status or
 /memory rebuild-index to the running agent."""
@@ -83,6 +85,7 @@ main.add_command(backup_command)
 main.add_command(restore_command)
 main.add_command(install_browser)
 main.add_command(robinhood)
+main.add_command(quickbooks)
 
 
 if __name__ == '__main__':

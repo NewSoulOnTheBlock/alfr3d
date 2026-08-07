@@ -1,0 +1,118 @@
+---
+title: QuickBooks Bookkeeping
+description: Connect ALFR3D to the QuickBooks Online MCP to read the books, run reports, and record transactions
+---
+
+ALFR3D can do bookkeeping in **QuickBooks Online** through Intuit's
+[QuickBooks Online MCP server](https://github.com/intuit/quickbooks-online-mcp-server)
+(`@qboapi/qbo-mcp-server`). Once connected, ALFR3D can read accounts, customers,
+vendors, and transactions, run financial reports, and — with write access —
+create, edit, and delete records.
+
+<Warning>
+**Full read/write/delete.** In this setup ALFR3D can create, update, **and
+delete** real records in your books, and deletes/edits to posted transactions are
+effectively irreversible. The server can restrict this via
+`QUICKBOOKS_DISABLE_WRITE` / `QUICKBOOKS_DISABLE_UPDATE` / `QUICKBOOKS_DISABLE_DELETE`
+(set them in the credentials file to dial back) — get/search/reports are always
+available. **v1 is bound to a single QuickBooks company.**
+</Warning>
+
+## How it's different from other MCP servers
+
+Unlike remote MCP servers, the QuickBooks server is a **Node/ESM program that
+speaks MCP over stdio**, so it runs *inside* the ALFR3D container (a stdio server
+is a subprocess of the agent, not a sidecar). It authenticates to Intuit itself
+using credentials in a **`.env` file**, and it **rotates its refresh token back
+into that `.env`** on each refresh — so the credentials live in a persisted file,
+not in `mcp.json`.
+
+## 1. Build the image with the server
+
+The server is off by default to keep the image lean. Rebuild with the build arg:
+
+```bash
+docker compose -f docker/docker-compose.yml build --build-arg INSTALL_QUICKBOOKS=true
+docker compose -f docker/docker-compose.yml up -d
+```
+
+This installs Node and builds the server into `/opt/quickbooks-mcp` inside the
+image. (Pin a specific version with `--build-arg QUICKBOOKS_MCP_REF=<git-ref>`.)
+
+## 2. Create an Intuit app and get credentials
+
+1. In the [Intuit Developer portal](https://developer.intuit.com/), create an app
+   with the **Accounting** scope. Note its **Client ID** and **Client Secret**.
+2. Run the server's one-time OAuth handshake **on a machine with a browser** (it
+   opens a browser and writes a `.env`):
+   ```bash
+   git clone https://github.com/intuit/quickbooks-online-mcp-server.git
+   cd quickbooks-online-mcp-server && npm install && npm run auth
+   ```
+   Sandbox accepts an `http://localhost` redirect; production needs a public
+   HTTPS callback (e.g. an ngrok tunnel). After you approve, the `.env` holds
+   `QUICKBOOKS_CLIENT_ID`, `QUICKBOOKS_CLIENT_SECRET`, `QUICKBOOKS_REALM_ID`,
+   `QUICKBOOKS_REFRESH_TOKEN`, and `QUICKBOOKS_ENVIRONMENT`.
+
+<Note>
+The OAuth handshake is operator-performed — it requires signing into Intuit in a
+browser, which ALFR3D cannot do for you.
+</Note>
+
+## 3. Connect
+
+Point ALFR3D at those credentials with one command (run it inside the container,
+e.g. `docker exec -it alfr3d alfr3d quickbooks connect ...`):
+
+```bash
+# From the .env the handshake produced:
+alfr3d quickbooks connect --env-file /path/to/.env
+
+# …or pass the values directly:
+alfr3d quickbooks connect \
+  --client-id <ID> --client-secret <SECRET> \
+  --realm-id <REALM> --refresh-token <TOKEN> \
+  --environment production
+```
+
+`connect` stores the credentials in a **persisted** `quickbooks.env` on the
+mounted volume, symlinks it into the server directory (so rotated tokens survive
+restarts), writes the `mcp.json` entry, and enables on-demand MCP tool retrieval
+(the server exposes ~144 tools). Check state with `alfr3d quickbooks status`;
+remove it with `alfr3d quickbooks disconnect`.
+
+Then restart:
+
+```bash
+alfr3d restart
+```
+
+## 4. Verify
+
+Ask ALFR3D a **read-only** question first:
+
+> "Run my profit and loss for last month and show my balance sheet."
+
+It should call the report tools and return real figures. If tools are missing,
+run `alfr3d quickbooks status` — it flags whether the server is built, credentials
+are present, and tool retrieval is on.
+
+## Available tools
+
+~144 tools across ~29 entities, by prefix: `get_*` / `search_*` (read),
+`create_*` (write), `update_*` (edit), `delete_*` (destructive), plus reports:
+`get_balance_sheet`, `get_profit_and_loss`, `get_cash_flow`, `get_trial_balance`,
+`get_general_ledger`, `get_aged_receivables`, `get_aged_payables`, and more.
+
+The bundled **`quickbooks-bookkeeping` skill** teaches ALFR3D to read before
+writing, confirm every write, and treat deletes as high-stakes.
+
+## Credentials & safety notes
+
+- The `quickbooks.env` file holds live secrets and is written with `600`
+  permissions. Keep the mounted volume private; never commit it.
+- The refresh token rotates automatically — always let `connect` manage the
+  persisted `.env`; don't hardcode tokens in `mcp.json`.
+- ALFR3D is not a licensed accountant and does not provide tax or audit advice.
+- To restrict write access, add `QUICKBOOKS_DISABLE_DELETE=true` (and/or
+  `_DISABLE_WRITE` / `_DISABLE_UPDATE`) to `quickbooks.env` and restart.
