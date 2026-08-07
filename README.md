@@ -16,6 +16,7 @@ Alfr3d is lightweight, easy to deploy, and built to extend. Plug in any major LL
 | Tools | Built-in file I/O, terminal, browser, scheduler, memory retrieval, web search, and 10+ more tools — with native MCP integration |
 | Trading | Manage a Robinhood **Agentic portfolio** — read holdings and live quotes, and review, place, or cancel equity trades via the Robinhood Trading MCP |
 | Bookkeeping | Keep the books in **QuickBooks Online** — read accounts and transactions, run reports (P&L, balance sheet, cash flow), and record or correct entries via the QuickBooks Online MCP |
+| Credit | Build and repair **your own credit** — FICO-factor audit, FCRA/FDCPA dispute letters via certified mail (Lob), 30-day deadline tracking, and business-credit planning |
 | Channels | Integrates with Web, WeChat, Feishu, DingTalk, WeCom, QQ, Official Accounts, Telegram, and Slack |
 | Multimodal | First-class support for text, images, voice, and files — recognition, generation, and delivery |
 | Models | Claude, GPT, Gemini, DeepSeek, Qwen, GLM, Kimi, MiniMax, Doubao, and more — swap providers from the Web console with one click |
@@ -195,6 +196,33 @@ bill from City Power."* Check state with `alfr3d quickbooks status`. See
 > **delete** records, and edits to posted transactions are hard to reverse. Alfr3d
 > is not a licensed accountant and does not provide tax or audit advice; review
 > its changes.
+
+<br/>
+
+## 💳 Credit Builder
+
+Alfr3d can work on **your own credit**: audit your FICO profile, plan score
+improvements, generate and mail **FCRA/FDCPA dispute letters as USPS certified
+mail** (via [Lob](https://lob.com)), track 30-day response deadlines, and plan
+business credit (DUNS → net-30 tradelines → PAYDEX → bank/SBA). It ships as a
+skill with bundled Python scripts — a native port of the ElizaOS
+credit-builder plugin.
+
+```bash
+# set LOB_API_KEY in docker-compose.yml (a test_ key mails nothing), then just ask:
+#   "analyze my credit"  ·  "dispute the ABC collection with a debt validation letter"
+#   "check my disputes"  ·  "help me build business credit"
+```
+
+- **19 letter types** across FCRA, FDCPA, FCBA, HIPAA, and negotiation.
+- FICO analysis runs on the profile you provide (no bureau pull); data persists
+  in `~/alfr3d/credit/`. See [docs/tools/credit-builder.mdx](docs/tools/credit-builder.mdx).
+
+> ⚠️ **Your own credit only** — this is not a service sold to others (which would
+> make you a Credit Repair Organization under CROA). It is **not legal or
+> financial advice**. Only dispute items you have a good-faith basis to believe
+> are inaccurate; frivolous disputes are unlawful under the FCRA. Certified
+> letters cost ~$9 each and are sent autonomously — rehearse with a `test_` key.
 
 <br/>
 
