@@ -1,0 +1,123 @@
+---
+title: プロセス管理
+description: alfr3d コマンドで Alfr3d プロセスのライフサイクルを管理
+---
+
+プロセス管理コマンドは Alfr3d バックグラウンドプロセスのライフサイクルを制御します。これらのコマンドはターミナルでのみ使用可能です。
+
+## start
+
+Alfr3d サービスを起動します。デフォルトではバックグラウンドデーモンとして実行され、自動的にログを表示します。
+
+```bash
+alfr3d start
+```
+
+**オプション：**
+
+| オプション | 説明 |
+| --- | --- |
+| `-f`, `--foreground` | フォアグラウンドで実行（デーモンとして起動しない） |
+| `--no-logs` | 起動後にログを自動表示しない |
+
+## stop
+
+実行中の Alfr3d サービスを停止します。
+
+```bash
+alfr3d stop
+```
+
+## restart
+
+Alfr3d サービスを再起動します（停止してから起動）。
+
+```bash
+alfr3d restart
+```
+
+**オプション：**
+
+| オプション | 説明 |
+| --- | --- |
+| `--no-logs` | 再起動後にログを自動表示しない |
+
+## update
+
+コードを更新してサービスを再起動します。自動的に以下を実行します：
+
+1. 最新コードをプル（`git pull`）
+2. 現在のサービスを停止
+3. Python 依存パッケージを更新
+4. CLI を再インストール
+5. サービスを起動
+
+```bash
+alfr3d update
+```
+
+<Warning>
+  `git pull` が失敗した場合（ローカルの未コミットの変更がある場合など）、更新は中止され、サービスには影響しません。
+</Warning>
+
+## status
+
+Alfr3d サービスの実行状態を確認します。プロセス情報、バージョン、現在のモデルとチャネルの設定を含みます。
+
+```bash
+alfr3d status
+```
+
+## logs
+
+サービスログを表示します。
+
+```bash
+alfr3d logs
+```
+
+**オプション：**
+
+| オプション | 説明 | デフォルト値 |
+| --- | --- | --- |
+| `-f`, `--follow` | ログ出力を継続的に追跡 | いいえ |
+| `-n`, `--lines` | 最近の N 行を表示 | 50 |
+
+例：
+
+```bash
+# 最近の100行を表示
+alfr3d logs -n 100
+
+# ログを継続的に追跡
+alfr3d logs -f
+```
+
+## install-browser
+
+[ブラウザツール](/ja/tools/browser)のために Playwright と Chromium ブラウザをインストールします。
+
+```bash
+alfr3d install-browser
+```
+
+<Tip>
+  ブラウザツール（Web ブラウジング、スクリーンショットなど）を使用する場合にのみ必要です。
+</Tip>
+
+## run.sh との互換性
+
+Alfr3d CLI がインストールされていない場合は、`run.sh` でサービスを管理できます：
+
+| alfr3d コマンド | run.sh 相当 |
+| --- | --- |
+| `alfr3d start` | `./run.sh start` |
+| `alfr3d stop` | `./run.sh stop` |
+| `alfr3d restart` | `./run.sh restart` |
+| `alfr3d update` | `./run.sh update` |
+| `alfr3d status` | `./run.sh status` |
+| `alfr3d logs` | `./run.sh logs` |
+
+<Note>
+  `alfr3d` コマンドの使用を推奨します。よりシンプルな構文と豊富な機能を提供します。ワンクリックインストールスクリプトで自動的にインストールされます。
+</Note>

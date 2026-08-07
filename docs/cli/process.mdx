@@ -1,0 +1,123 @@
+---
+title: Process Management
+description: Manage Alfr3d process lifecycle with alfr3d commands
+---
+
+Process management commands control the Alfr3d background process. These commands are only available in the terminal.
+
+## start
+
+Start the Alfr3d service. Runs as a background daemon by default and automatically tails logs.
+
+```bash
+alfr3d start
+```
+
+**Options:**
+
+| Option | Description |
+| --- | --- |
+| `-f`, `--foreground` | Run in foreground, not as a background daemon |
+| `--no-logs` | Don't tail logs after starting |
+
+## stop
+
+Stop the running Alfr3d service.
+
+```bash
+alfr3d stop
+```
+
+## restart
+
+Restart the Alfr3d service (stop then start).
+
+```bash
+alfr3d restart
+```
+
+**Options:**
+
+| Option | Description |
+| --- | --- |
+| `--no-logs` | Don't tail logs after restart |
+
+## update
+
+Update code and restart the service. Automatically performs:
+
+1. Pull latest code (`git pull`)
+2. Stop current service
+3. Update Python dependencies
+4. Reinstall CLI
+5. Start service
+
+```bash
+alfr3d update
+```
+
+<Warning>
+  If `git pull` fails (e.g., uncommitted local changes), the update aborts and the service remains unaffected.
+</Warning>
+
+## status
+
+Check Alfr3d service status, including process info, version, and current model/channel configuration.
+
+```bash
+alfr3d status
+```
+
+## logs
+
+View service logs.
+
+```bash
+alfr3d logs
+```
+
+**Options:**
+
+| Option | Description | Default |
+| --- | --- | --- |
+| `-f`, `--follow` | Continuously tail log output | No |
+| `-n`, `--lines` | Show last N lines | 50 |
+
+Examples:
+
+```bash
+# View last 100 lines
+alfr3d logs -n 100
+
+# Continuously tail logs
+alfr3d logs -f
+```
+
+## install-browser
+
+Install Playwright and Chromium browser for the [browser tool](/tools/browser).
+
+```bash
+alfr3d install-browser
+```
+
+<Tip>
+  Only needed when using browser tools (web browsing, screenshots, etc.).
+</Tip>
+
+## run.sh Compatibility
+
+If Alfr3d CLI is not installed, you can use `run.sh` to manage the service:
+
+| alfr3d command | run.sh equivalent |
+| --- | --- |
+| `alfr3d start` | `./run.sh start` |
+| `alfr3d stop` | `./run.sh stop` |
+| `alfr3d restart` | `./run.sh restart` |
+| `alfr3d update` | `./run.sh update` |
+| `alfr3d status` | `./run.sh status` |
+| `alfr3d logs` | `./run.sh logs` |
+
+<Note>
+  The `alfr3d` command is recommended — it provides cleaner syntax and richer features. It is automatically installed via the one-click install script.
+</Note>

@@ -1,0 +1,77 @@
+---
+title: v2.0.5
+description: Alfr3d 2.0.5 - Alfr3d CLI, Skill Hub open source, Browser tool, WeCom Bot QR scan, and more
+---
+
+## 🖥️ Alfr3d CLI
+
+New CLI command system for managing Alfr3d from terminal and chat:
+
+- **Terminal commands**: Run `alfr3d <command>` for `start`, `stop`, `restart`, `update`, `status`, `logs`, etc.
+- **Chat commands**: Type `/<command>` in conversation for `/help`, `/status`, `/config`, `/skill`, `/context`, `/logs`, `/version`, etc.
+- **Web console**: Type `/` in the input box to open a slash command menu, with arrow-key input history
+- **Windows support**: New PowerShell script `scripts/run.ps1` with `alfr3d` command support
+
+Docs: [Command Overview](https://docs.alfr3d.local/en/cli)
+
+<img src="https://cdn.link-ai.tech/doc/20260401114549.png" width="750" />
+
+## 🧩 Alfr3d Skill Hub Open Source
+
+[Alfr3d Skill Hub](https://skills.alfr3d.local) is now open source and live — browse, search, install, and publish AI Agent skills:
+
+- **One-command install**: `/skill install <name>` in chat or `alfr3d skill install <name>` in terminal
+- **Multi-source**: Install from Skill Hub, GitHub, ClawHub, LinkAI, and more
+- **Search**: `/skill search` and `/skill list --remote` to browse the hub
+- **Publish**: Submit your own skills at [skills.alfr3d.local/submit](https://skills.alfr3d.local/submit)
+- **Mirror**: Mirror acceleration for faster downloads in China
+
+Open source repo: [alfr3d-skill-hub](https://github.com/NewSoulOnTheBlock/alfr3d-skill-hub)
+
+Docs: [Skill Hub](https://docs.alfr3d.local/en/skills/hub), [Install Skills](https://docs.alfr3d.local/en/skills/install)
+
+<img src="https://cdn.link-ai.tech/doc/20260401110103.png" width="750" />
+
+## 🌐 Browser Tool
+
+New Browser tool — Agent can control a Chromium browser to visit and interact with web pages:
+
+- **Navigation & interaction**: `navigate`, `click`, `fill`, `select`, `scroll`, `press`, etc.
+- **Page snapshot**: Compact DOM snapshot for efficient page understanding, auto-snapshot after navigation
+- **Screenshot**: Save page screenshots to workspace
+- **JavaScript execution**: Run custom scripts on pages
+- **CLI install**: `alfr3d install-browser` for one-command setup
+- **Docker support**: Browser install built into Docker image
+
+Docs: [Browser Tool](https://docs.alfr3d.local/en/tools/browser)
+
+<img src="https://cdn.link-ai.tech/doc/20260401115728.png" width="750" />
+
+## 🤖 WeCom Bot QR Code Setup
+
+WeCom Bot channel now supports QR code scan for one-click bot creation:
+
+- **QR scan in Web console**: Select "Scan QR" mode, scan with WeCom to auto-create and connect a bot — no manual configuration needed
+- **Manual mode**: Still supports manual Bot ID and Secret input
+- **Stream push optimization**: Throttled push to avoid WebSocket congestion
+
+Docs: [WeCom Bot](https://docs.alfr3d.local/en/channels/wecom-bot)
+
+PR: [#2735](https://github.com/NewSoulOnTheBlock/alfr3d/pull/2735). Thanks [@WecomTeam](https://github.com/WecomTeam)
+
+## 🐛 Other Improvements & Fixes
+
+- **DeepSeek module**: Independent DeepSeek Bot with dedicated `deepseek_api_key` config ([#2719](https://github.com/NewSoulOnTheBlock/alfr3d/pull/2719)). Thanks [@6vision](https://github.com/6vision)
+- **Web console**: Slash command menu, input history, new model options, mobile optimization ([#2731](https://github.com/NewSoulOnTheBlock/alfr3d/pull/2731)). Thanks [@zkjqd](https://github.com/zkjqd)
+- **Context loss**: Fix context loss after trimming ([393f0c0](https://github.com/NewSoulOnTheBlock/alfr3d/commit/393f0c0))
+- **System prompt**: Fix system prompt not rebuilding on every turn ([13f5fde](https://github.com/NewSoulOnTheBlock/alfr3d/commit/13f5fde))
+- **Gemini**: Fix missing model attribute in GoogleGeminiBot ([#2716](https://github.com/NewSoulOnTheBlock/alfr3d/pull/2716)). Thanks [@alfr3d](https://github.com/alfr3d)
+- **WeChat channel**: Fix file send failures and filename loss ([6d9b7ba](https://github.com/NewSoulOnTheBlock/alfr3d/commit/6d9b7ba), [45faa9c](https://github.com/NewSoulOnTheBlock/alfr3d/commit/45faa9c))
+- **Docker**: Fix volume permissions, reduce image size ([3eb8348](https://github.com/NewSoulOnTheBlock/alfr3d/commit/3eb8348), [4470d4c](https://github.com/NewSoulOnTheBlock/alfr3d/commit/4470d4c))
+- **Security**: Fix Memory Content path traversal risk. Thanks [@August829](https://github.com/August829)
+
+## 📦 Upgrade
+
+Run `alfr3d update` or `./run.sh update` to upgrade, or pull the latest code and restart. See [Upgrade Guide](https://docs.alfr3d.local/en/guide/upgrade).
+
+**Release Date**: 2026.04.01 | [Full Changelog](https://github.com/NewSoulOnTheBlock/alfr3d/compare/2.0.4...master)

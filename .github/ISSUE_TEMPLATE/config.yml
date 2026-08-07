@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📖 Documentation
+    url: https://docs.alfr3d.local
+    about: Setup guides, configuration, and FAQ.

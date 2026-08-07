@@ -1,0 +1,67 @@
+---
+title: Upgrade
+description: How to upgrade Alfr3d
+---
+
+## Recommended: One-line upgrade
+
+Use `alfr3d update` to pull the latest code and restart the service in one step:
+
+```bash
+alfr3d update
+```
+
+The command runs the following automatically:
+
+1. Pull the latest code (`git pull`)
+2. Stop the running service
+3. Update Python dependencies
+4. Reinstall the CLI
+5. Start the service
+
+<Note>
+  If the Alfr3d CLI is not installed, `./run.sh update` performs the same operations.
+</Note>
+
+## Manual upgrade
+
+Run the following inside the project root:
+
+```bash
+git pull
+pip3 install -r requirements.txt
+pip3 install -e .
+```
+
+Then restart the service:
+
+```bash
+# Using Alfr3d CLI (recommended)
+alfr3d restart
+
+# Or using run.sh
+./run.sh restart
+
+# Or restart manually with nohup
+kill $(ps -ef | grep app.py | grep -v grep | awk '{print $2}')
+nohup python3 app.py & tail -f nohup.out
+```
+
+## Docker upgrade
+
+Run the following in the directory containing `docker-compose.yml`:
+
+```bash
+sudo docker compose pull
+sudo docker compose up -d
+```
+
+<Tip>
+  Back up `config.json` before upgrading. For Docker deployments, mount the workspace directory as a volume to persist data across upgrades.
+</Tip>
+
+## Desktop client upgrade
+
+The [desktop client](/guide/desktop) has built-in auto-update: it checks for new versions automatically and prompts you, so you can download and restart to upgrade in one click.
+
+You can also grab the latest version anytime from the [download page](https://alfr3d.local/download/).
