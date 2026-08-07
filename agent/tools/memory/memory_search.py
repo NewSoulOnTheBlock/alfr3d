@@ -50,11 +50,17 @@ class MemorySearchTool(BaseTool):
         self.user_id = user_id
 
         from config import conf
+        parts = [
+            "Search agent's long-term memory using local hybrid search",
+        ]
+        if getattr(memory_manager, "mem0", None):
+            parts.append("and Mem0 cloud semantic memory")
         if conf().get("knowledge", True):
-            self.description = (
-                "Search agent's long-term memory and knowledge base using semantic and keyword search. "
-                "Use this to recall past conversations, preferences, and knowledge pages."
-            )
+            parts.append("and the knowledge base")
+        self.description = (
+            f"{' '.join(parts)}. "
+            "Use this to recall past conversations, preferences, and durable facts."
+        )
     
     def execute(self, args: dict):
         """
@@ -67,8 +73,7 @@ class MemorySearchTool(BaseTool):
             ToolResult with formatted search results
         """
         from agent.tools.base_tool import ToolResult
-        import asyncio
-        
+
         query = args.get("query")
         max_results = args.get("max_results", 10)
         min_score = args.get("min_score", 0.1)
@@ -77,8 +82,10 @@ class MemorySearchTool(BaseTool):
             return ToolResult.fail("Error: query parameter is required")
         
         try:
-            # Run async search in sync context
-            results = asyncio.run(self.memory_manager.search(
+            # Safe under both CLI (no loop) and web/async channels (running loop).
+            from common.async_utils import run_async
+
+            results = run_async(self.memory_manager.search(
                 query=query,
                 user_id=self.user_id,
                 max_results=max_results,
@@ -92,16 +99,27 @@ class MemorySearchTool(BaseTool):
                 return ToolResult.success(
                     f"No memories found for '{query}'. "
                     f"This is normal if no memories have been stored yet. "
-                    f"You can store new memories by writing to MEMORY.md or memory/YYYY-MM-DD.md files."
+                    f"Store facts in MEMORY.md / memory/ daily files"
+                    + (
+                        ", or continue chatting so Mem0 can extract durable facts."
+                        if getattr(self.memory_manager, "mem0", None)
+                        else "."
+                    )
                 )
             
             # Format results
             output = [f"Found {len(results)} relevant memories:\n"]
             
             for i, result in enumerate(results, 1):
-                output.append(f"\n{i}. {result.path} (lines {result.start_line}-{result.end_line})")
-                output.append(f"   Score: {result.score:.3f}")
-                output.append(f"   Snippet: {result.snippet}")
+                if getattr(result, "source", "") == "mem0" or str(result.path).startswith("mem0://"):
+                    output.append(f"\n{i}. [Mem0 cloud] score={result.score:.3f}")
+                    output.append(f"   {result.snippet}")
+                else:
+                    output.append(
+                        f"\n{i}. {result.path} (lines {result.start_line}-{result.end_line})"
+                    )
+                    output.append(f"   Score: {result.score:.3f}")
+                    output.append(f"   Snippet: {result.snippet}")
             
             return ToolResult.success("\n".join(output))
             

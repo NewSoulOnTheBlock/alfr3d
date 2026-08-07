@@ -10,6 +10,19 @@ def create_bot(bot_type):
     :param bot_type: bot type code
     :return: bot instance
     """
+    # Normalize common aliases so setup / UI / docs do not hard-crash.
+    if isinstance(bot_type, str):
+        aliases = {
+            "claude": const.CLAUDEAPI,
+            "anthropic": const.CLAUDEAPI,
+            "openai-codex": const.OPENAI,
+            "codex": const.OPENAI,
+            "chatgpt": const.CHATGPT,
+            "gpt": const.OPENAI,
+            "qwen": const.QWEN_DASHSCOPE,
+        }
+        bot_type = aliases.get(bot_type.strip().lower(), bot_type)
+
     if bot_type == const.BAIDU:
         # 替换Baidu Unit为Baidu文心千帆对话接口
         # from models.baidu.baidu_unit_bot import BaiduUnitBot
@@ -81,4 +94,8 @@ def create_bot(bot_type):
         from models.doubao.doubao_bot import DoubaoBot
         return DoubaoBot()
 
-    raise RuntimeError
+    raise RuntimeError(
+        f"Unknown bot_type {bot_type!r}. "
+        f"Set bot_type in config.json to a supported provider "
+        f"(e.g. openai, claudeAPI, deepseek, gemini)."
+    )

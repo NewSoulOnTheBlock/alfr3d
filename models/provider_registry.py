@@ -80,7 +80,17 @@ def resolve_bot_type(
 
     configured = cfg.get("bot_type")
     if configured and isinstance(configured, str) and configured.strip():
-        return configured.strip()
+        # Normalize aliases (claude → claudeAPI) so create_bot never sees a
+        # bare unknown string from setup or hand-edited config.
+        alias = configured.strip()
+        aliases = {
+            "claude": const.CLAUDEAPI,
+            "anthropic": const.CLAUDEAPI,
+            "openai-codex": const.OPENAI,
+            "codex": const.OPENAI,
+            "gpt": const.OPENAI,
+        }
+        return aliases.get(alias.lower(), alias)
 
     if cfg.get("use_azure_chatgpt", False):
         return const.CHATGPTONAZURE

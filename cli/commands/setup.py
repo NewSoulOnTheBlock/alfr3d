@@ -740,6 +740,38 @@ def run_setup(force: bool = False, non_interactive: bool = False) -> int:
         default=cfg.get("self_evolution_enabled", True) is not False,
     )
 
+    # Mem0 cloud memory (integral second tier alongside local MEMORY.md)
+    _echo()
+    _dim("  Mem0 adds cloud semantic memory (cross-session recall) on top of local MEMORY.md.")
+    _dim("  Get a key: https://app.mem0.ai/dashboard/api-keys")
+    enable_mem0 = click.confirm(
+        "  Enable Mem0 cloud memory?",
+        default=bool(cfg.get("mem0_api_key")) or cfg.get("mem0_enabled", True) is not False,
+    )
+    mem0_api_key = (cfg.get("mem0_api_key") or "").strip()
+    mem0_user_id = (cfg.get("mem0_user_id") or preferred or "alfr3d-user").strip()
+    if enable_mem0:
+        existing_m0 = mem0_api_key
+        if existing_m0 and not is_placeholder(existing_m0):
+            _dim(f"  Existing Mem0 key on file: {_mask_key(existing_m0)}")
+            if not click.confirm("  Keep the existing Mem0 API key?", default=True):
+                mem0_api_key = _ask("  Enter Mem0 API key", required=True, hide=True)
+        else:
+            # Optional: allow skip if they confirmed enable but want to set later
+            mem0_api_key = _ask(
+                "  Enter Mem0 API key (or leave empty to skip for now)",
+                default="",
+                hide=True,
+            )
+            if not mem0_api_key:
+                _warn("  Mem0 enabled but no key yet — set mem0_api_key later in config.json.")
+        mem0_user_id = _ask(
+            "  Mem0 user id (stable id for your memories)",
+            default=mem0_user_id or preferred or "alfr3d-user",
+        )
+    else:
+        mem0_api_key = mem0_api_key  # keep existing key if any, but mark disabled
+
     # ── Persist ───────────────────────────────────────────────────────
     now = datetime.now(dt_timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -786,6 +818,18 @@ def run_setup(force: bool = False, non_interactive: bool = False) -> int:
     cfg["web_password"] = web_password
     cfg["knowledge"] = enable_knowledge
     cfg["self_evolution_enabled"] = enable_evolution
+    cfg["mem0_enabled"] = bool(enable_mem0)
+    if enable_mem0 and mem0_api_key and not is_placeholder(mem0_api_key):
+        cfg["mem0_api_key"] = mem0_api_key
+    elif not enable_mem0:
+        # Keep any stored key but leave disabled so re-enable is easy.
+        pass
+    if mem0_user_id:
+        cfg["mem0_user_id"] = mem0_user_id
+    if not cfg.get("mem0_agent_id"):
+        cfg["mem0_agent_id"] = "alfr3d"
+    if not cfg.get("mem0_base_url"):
+        cfg["mem0_base_url"] = "https://api.mem0.ai/v1"
     if not cfg.get("channel_type"):
         cfg["channel_type"] = "web"
 
@@ -865,7 +909,7 @@ def run_setup(force: bool = False, non_interactive: bool = False) -> int:
     help="Skip the post-setup boot sequence.",
 )
 def setup(force: bool, no_banner: bool):
-    """Interactive setup — API keys, preferences, and why you're here.
+    """Interactive setup — credentials, preferences, and why you're here.
 
     \b
     Alfr3d will ask:
@@ -873,7 +917,10 @@ def setup(force: bool, no_banner: bool):
       • whether you have started a business
       • whether you want to learn, launch, or grow
       • what to focus on
-      • which model provider and API key to use
+      • provider auth: API key, Anthropic OAuth (Claude setup-token),
+        or OpenAI Codex OAuth (ChatGPT / Codex CLI)
+      • default model name
+      • Mem0 API key for cloud semantic memory
     """
     if not click.get_text_stream("stdin").isatty():
         click.echo("Setup requires an interactive terminal. Run: alfr3d setup", err=True)

@@ -303,7 +303,14 @@ class AgentInitializer:
                 memory_config, session_id=session_id
             )
 
-            memory_manager = MemoryManager(memory_config, embedding_provider=embedding_provider)
+            from agent.memory.mem0_client import mem0_from_config
+            mem0_client = mem0_from_config(conf().get)
+
+            memory_manager = MemoryManager(
+                memory_config,
+                embedding_provider=embedding_provider,
+                mem0_client=mem0_client,
+            )
             self._sync_memory(memory_manager, session_id)
 
             memory_tools = [
@@ -312,7 +319,10 @@ class AgentInitializer:
             ]
             
             if session_id is None:
-                logger.info("[AgentInitializer] Memory system initialized")
+                mem0_status = "on" if mem0_client else "off"
+                logger.info(
+                    f"[AgentInitializer] Memory system initialized (mem0={mem0_status})"
+                )
         
         except Exception as e:
             logger.warning(f"[AgentInitializer] Memory system not available: {e}")

@@ -297,6 +297,13 @@ available_setting = {
     "reasoning_effort": "high",  # Provider-native reasoning depth; allowed values depend on the active provider/model
     "reasoning_effort_by_model": {},  # Per-model effort intent: {"<provider>:<model>": "<value>"}; overrides the global key per model
     "knowledge": True,  # whether to enable the knowledge base feature
+    # Mem0 cloud semantic memory (integral second tier with local MEMORY.md)
+    "mem0_enabled": True,  # when false, never call Mem0 even if key is present
+    "mem0_api_key": "",  # from https://app.mem0.ai/dashboard/api-keys ; env MEM0_API_KEY
+    "mem0_user_id": "alfr3d-user",  # stable user scope for cloud memories
+    "mem0_agent_id": "alfr3d",  # agent scope for personality vs user facts
+    "mem0_base_url": "https://api.mem0.ai/v1",
+    "mem0_auto_remember": True,  # dual-write each chat exchange to Mem0
     # Self-evolution: review idle conversations to learn memory/skills. Flat keys.
     "self_evolution_enabled": True,         # switch to enable/disable self-evolution
     "self_evolution_idle_minutes": 10,      # idle time before a session is reviewed
@@ -544,6 +551,8 @@ def load_config():
         "claude_api_key": "CLAUDE_API_KEY",
         "claude_oauth_token": "CLAUDE_CODE_OAUTH_TOKEN",
         "codex_oauth_access_token": "CODEX_ACCESS_TOKEN",
+        "mem0_api_key": "MEM0_API_KEY",
+        "mem0_user_id": "MEM0_USER_ID",
         "claude_api_base": "CLAUDE_API_BASE",
         "gemini_api_key": "GEMINI_API_KEY",
         "gemini_api_base": "GEMINI_API_BASE",

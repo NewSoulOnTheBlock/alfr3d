@@ -137,9 +137,15 @@ class BaseTool:
 
     def execute_tool(self, params: dict) -> ToolResult:
         try:
-            return self.execute(params)
+            result = self.execute(params)
+            if result is None:
+                return ToolResult.fail(
+                    f"Error: tool '{getattr(self, 'name', '?')}' returned no result"
+                )
+            return result
         except Exception as e:
             logger.error(e)
+            return ToolResult.fail(f"Error: {e}")
 
     def execute(self, params: dict) -> ToolResult:
         """Specific logic to be implemented by subclasses"""

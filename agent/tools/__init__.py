@@ -1,7 +1,7 @@
-"""Tools package — core always loaded; heavy tools registered lazily.
+"""Tools package — core always loaded; heavy tools registered only via ToolManager.
 
-Tier A lean: browser, vision, web_search, MCP are not imported until
-ToolManager asks for them (or create_tool is called by name).
+Heavy tools (browser, vision, web_search, MCP) are NOT in CORE_TOOL_EXPORTS so
+``import agent.tools`` / ``ToolManager`` discovery does not pull Playwright.
 """
 
 from agent.tools.base_tool import BaseTool
@@ -20,7 +20,7 @@ from agent.tools.memory.memory_get import MemoryGetTool
 from agent.tools.evolution_undo.evolution_undo import EvolutionUndoTool
 from agent.tools.subagent.subagent import SubagentTool
 
-# Soft-optional but still "core product" — import with quiet fallback
+# Soft-optional core product tools
 EnvConfig = None
 SchedulerTool = None
 WebFetch = None
@@ -42,7 +42,7 @@ except Exception:
 
 
 # ---- Lazy / heavy tools (import path, class name) ----
-# Registered by name only; ToolManager imports on first use.
+# NOT listed in CORE_TOOL_EXPORTS — ToolManager loads them separately.
 LAZY_TOOL_SPECS = {
     "WebSearch": ("agent.tools.web_search.web_search", "WebSearch"),
     "Vision": ("agent.tools.vision.vision", "Vision"),
@@ -75,18 +75,9 @@ def load_lazy_tool_class(class_name: str):
         return None
 
 
-# Module-level names for backward compatibility (may be None until first load)
-def __getattr__(name: str):
-    if name in LAZY_TOOL_SPECS:
-        return load_lazy_tool_class(name)
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-
-# Classes ToolManager should discover from this package (core only).
-# Lazy tools are appended by ToolManager after optional import.
-__all__ = [
-    "BaseTool",
-    "ToolManager",
+# Names ToolManager may discover via getattr on this package (core only).
+# Lazy names intentionally excluded so hasattr/getattr cannot eager-import them.
+CORE_TOOL_EXPORTS = [
     "Read",
     "Write",
     "Edit",
@@ -101,11 +92,15 @@ __all__ = [
     "EnvConfig",
     "SchedulerTool",
     "WebFetch",
-    # Lazy names listed so getattr / documentation stay stable
-    "WebSearch",
-    "Vision",
-    "BrowserTool",
-    "McpTool",
+]
+
+# Public package API (includes lazy names for documentation only — they are
+# not auto-discovered; access via load_lazy_tool_class).
+__all__ = [
+    "BaseTool",
+    "ToolManager",
+    *CORE_TOOL_EXPORTS,
     "LAZY_TOOL_SPECS",
+    "CORE_TOOL_EXPORTS",
     "load_lazy_tool_class",
 ]

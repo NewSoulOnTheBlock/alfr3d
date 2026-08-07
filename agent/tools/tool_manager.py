@@ -135,100 +135,122 @@ class ToolManager:
 
     def _load_tools_from_init(self) -> bool:
         """
-        Load tool classes from tools.__init__.__all__
+        Load core tool classes from tools.CORE_TOOL_EXPORTS (not full __all__).
+
+        Heavy tools (browser/vision/web_search) register as deferred loaders so
+        Playwright is not imported until create_tool('browser') is needed.
 
         :return: True if tools were loaded, False otherwise
         """
         try:
-            # Try to import the tools package
             tools_package = importlib.import_module("agent.tools")
 
-            # Check if __all__ is defined
-            if hasattr(tools_package, "__all__"):
-                tool_classes = tools_package.__all__
+            # Prefer CORE_TOOL_EXPORTS so lazy names never appear in discovery.
+            tool_classes = getattr(
+                tools_package,
+                "CORE_TOOL_EXPORTS",
+                None,
+            )
+            if tool_classes is None:
+                tool_classes = [
+                    n for n in getattr(tools_package, "__all__", [])
+                    if n not in ("BaseTool", "ToolManager", "LAZY_TOOL_SPECS",
+                                 "CORE_TOOL_EXPORTS", "load_lazy_tool_class")
+                ]
 
-                # Import each tool class directly from the tools package
-                for class_name in tool_classes:
+            for class_name in tool_classes:
+                try:
+                    if class_name in ("BaseTool", "ToolManager"):
+                        continue
+                    if class_name in ("MemorySearchTool", "MemoryGetTool"):
+                        logger.debug(
+                            f"Skipped tool {class_name} (requires memory_manager)"
+                        )
+                        continue
+                    if class_name == "McpTool":
+                        continue
+
+                    cls = getattr(tools_package, class_name, None)
+                    if cls is None:
+                        continue
+                    if not (
+                        isinstance(cls, type)
+                        and issubclass(cls, BaseTool)
+                        and cls is not BaseTool
+                    ):
+                        continue
+
                     try:
-                        # Skip base classes
-                        if class_name in ["BaseTool", "ToolManager"]:
-                            continue
-
-                        # Get the class directly from the tools package
-                        if hasattr(tools_package, class_name):
-                            cls = getattr(tools_package, class_name)
-
-                            if (
-                                    isinstance(cls, type)
-                                    and issubclass(cls, BaseTool)
-                                    and cls != BaseTool
-                            ):
-                                try:
-                                    # Skip tools that need special initialization
-                                    if class_name in ["MemorySearchTool", "MemoryGetTool"]:
-                                        logger.debug(f"Skipped tool {class_name} (requires memory_manager)")
-                                        continue
-                                    # McpTool instances are registered dynamically via _load_mcp_tools()
-                                    if class_name == "McpTool":
-                                        logger.debug(f"Skipped tool {class_name} (registered dynamically via mcp_servers config)")
-                                        continue
-                                    
-                                    # Create a temporary instance to get the name
-                                    temp_instance = cls()
-                                    tool_name = temp_instance.name
-                                    # Store the class, not the instance
-                                    self.tool_classes[tool_name] = cls
-                                    logger.debug(f"Loaded tool: {tool_name} from class {class_name}")
-                                except ImportError as e:
-                                    # Handle missing dependencies with helpful messages
-                                    error_msg = str(e)
-                                    if "markdownify" in error_msg:
-                                        logger.warning(
-                                            f"[ToolManager] {cls.__name__} not loaded - missing markdownify.\n"
-                                            f"  Install with: pip install markdownify"
-                                        )
-                                    else:
-                                        logger.warning(f"[ToolManager] {cls.__name__} not loaded due to missing dependency: {error_msg}")
-                                except Exception as e:
-                                    logger.error(f"Error initializing tool class {cls.__name__}: {e}")
+                        temp_instance = cls()
+                        tool_name = temp_instance.name
+                        self.tool_classes[tool_name] = cls
+                        logger.debug(
+                            f"Loaded tool: {tool_name} from class {class_name}"
+                        )
+                    except ImportError as e:
+                        error_msg = str(e)
+                        if "markdownify" in error_msg:
+                            logger.warning(
+                                f"[ToolManager] {cls.__name__} not loaded - missing markdownify.\n"
+                                f"  Install with: pip install markdownify"
+                            )
+                        else:
+                            logger.warning(
+                                f"[ToolManager] {cls.__name__} not loaded due to missing dependency: {error_msg}"
+                            )
                     except Exception as e:
-                        logger.error(f"Error importing class {class_name}: {e}")
+                        logger.error(
+                            f"Error initializing tool class {cls.__name__}: {e}"
+                        )
+                except Exception as e:
+                    logger.error(f"Error importing class {class_name}: {e}")
 
-                # Register heavy tools lazily (browser / vision / web_search).
-                # Import only when the class is actually needed; failures stay quiet.
-                self._register_lazy_tools(tools_package)
+            # Defer heavy tools: register factories, import on first create_tool.
+            self._register_lazy_tool_factories(tools_package)
 
-                return len(self.tool_classes) > 0
-            return False
+            return len(self.tool_classes) > 0 or bool(
+                getattr(self, "_lazy_tool_factories", None)
+            )
         except ImportError:
             logger.warning("Could not import agent.tools package")
             return False
         except Exception as e:
-            logger.error(f"Error loading tools from __init__.__all__: {e}")
+            logger.error(f"Error loading tools from package: {e}")
             return False
 
-    def _register_lazy_tools(self, tools_package) -> None:
-        """Load optional heavy tools without failing core registration."""
+    def _register_lazy_tool_factories(self, tools_package) -> None:
+        """Record how to load heavy tools without importing them yet.
+
+        Factories map tool *name* (e.g. browser) → callable that returns class.
+        create_tool() resolves them on demand.
+        """
+        if not hasattr(self, "_lazy_tool_factories"):
+            self._lazy_tool_factories = {}
+
         lazy_specs = getattr(tools_package, "LAZY_TOOL_SPECS", None) or {}
         load_fn = getattr(tools_package, "load_lazy_tool_class", None)
         if not load_fn:
             return
-        for class_name in lazy_specs:
-            if class_name == "McpTool":
-                # MCP tools are registered dynamically from mcp.json / config.
+
+        # Known tool names for deferred classes (avoid instantiating to learn name).
+        deferred_names = {
+            "WebSearch": "web_search",
+            "Vision": "vision",
+            "BrowserTool": "browser",
+            # McpTool is registered dynamically from mcp config, not here.
+        }
+        for class_name, tool_name in deferred_names.items():
+            if class_name not in lazy_specs:
                 continue
-            try:
-                cls = load_fn(class_name)
-                if (
-                    isinstance(cls, type)
-                    and issubclass(cls, BaseTool)
-                    and cls is not BaseTool
-                ):
-                    temp = cls()
-                    self.tool_classes[temp.name] = cls
-                    logger.debug(f"Lazy-loaded tool: {temp.name} ({class_name})")
-            except Exception as e:
-                logger.debug(f"Lazy tool {class_name} skipped: {e}")
+            if tool_name in self.tool_classes:
+                continue
+
+            def _factory(cn=class_name, lf=load_fn):
+                return lf(cn)
+
+            self._lazy_tool_factories[tool_name] = _factory
+            logger.debug(f"Deferred heavy tool: {tool_name} ({class_name})")
+
 
     def _load_tools_from_directory(self, tools_dir: str):
         """Dynamically load tool classes from directory"""
@@ -745,6 +767,37 @@ class ToolManager:
             self._embedding_provider_initialized = True
         return self._embedding_provider
 
+    def _resolve_tool_class(self, name: str):
+        """Return tool class, resolving deferred (lazy) factories once."""
+        tool_class = self.tool_classes.get(name)
+        if tool_class is not None:
+            return tool_class
+        factories = getattr(self, "_lazy_tool_factories", None) or {}
+        factory = factories.get(name)
+        if not factory:
+            return None
+        try:
+            cls = factory()
+            if (
+                isinstance(cls, type)
+                and issubclass(cls, BaseTool)
+                and cls is not BaseTool
+            ):
+                self.tool_classes[name] = cls
+                factories.pop(name, None)
+                logger.debug(f"Resolved deferred tool: {name}")
+                return cls
+        except Exception as e:
+            logger.debug(f"Deferred tool {name} failed to load: {e}")
+            factories.pop(name, None)
+        return None
+
+    def iter_registered_tool_names(self):
+        """Core + deferred tool names (for agent tool loading)."""
+        names = set(self.tool_classes.keys())
+        names |= set(getattr(self, "_lazy_tool_factories", {}) or {})
+        return sorted(names)
+
     def create_tool(self, name: str) -> BaseTool:
         """
         Get a new instance of a tool by name.
@@ -752,7 +805,7 @@ class ToolManager:
         :param name: The name of the tool to get.
         :return: A new instance of the tool or None if not found.
         """
-        tool_class = self.tool_classes.get(name)
+        tool_class = self._resolve_tool_class(name)
         if tool_class:
             # Create a new instance
             tool_instance = tool_class()
@@ -777,7 +830,10 @@ class ToolManager:
         :return: A dictionary with tool information.
         """
         result = {}
-        for name, tool_class in self.tool_classes.items():
+        for name in self.iter_registered_tool_names():
+            tool_class = self._resolve_tool_class(name)
+            if not tool_class:
+                continue
             # Create a temporary instance to get schema
             temp_instance = tool_class()
             result[name] = {

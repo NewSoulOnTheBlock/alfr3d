@@ -92,25 +92,8 @@ class KnowledgeService:
 
     @staticmethod
     def _run_sync(coro):
-        try:
-            asyncio.get_running_loop()
-        except RuntimeError:
-            return asyncio.run(coro)
-        result = []
-        error = []
-
-        def runner():
-            try:
-                result.append(asyncio.run(coro))
-            except Exception as exc:
-                error.append(exc)
-
-        thread = threading.Thread(target=runner)
-        thread.start()
-        thread.join()
-        if error:
-            raise error[0]
-        return result[0] if result else None
+        from common.async_utils import run_async
+        return run_async(coro)
 
     def _sync_index(self, old_paths: Iterable[str], force: bool = False):
         old_paths = sorted(set(old_paths))

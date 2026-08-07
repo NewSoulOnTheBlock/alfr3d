@@ -20,6 +20,7 @@ from agent.memory.conversation_store import (
     get_conversation_store,
 )
 from agent.memory.summarizer import ensure_daily_memory_file
+from agent.memory.mem0_client import Mem0Client, Mem0Memory, mem0_from_config
 
 __all__ = [
     'MemoryManager',
@@ -34,4 +35,7 @@ __all__ = [
     'clear_conversation_store_cache',
     'get_conversation_store',
     'ensure_daily_memory_file',
+    'Mem0Client',
+    'Mem0Memory',
+    'mem0_from_config',
 ]

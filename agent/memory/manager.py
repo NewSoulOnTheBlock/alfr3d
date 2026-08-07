@@ -28,7 +28,8 @@ class MemoryManager:
         self,
         config: Optional[MemoryConfig] = None,
         embedding_provider: Optional[EmbeddingProvider] = None,
-        llm_model: Optional[Any] = None
+        llm_model: Optional[Any] = None,
+        mem0_client: Optional[Any] = None,
     ):
         """
         Initialize memory manager
@@ -37,6 +38,7 @@ class MemoryManager:
             config: Memory configuration (uses global config if not provided)
             embedding_provider: Custom embedding provider (optional)
             llm_model: LLM model for summarization (optional)
+            mem0_client: Optional Mem0Client for cloud semantic memory
         """
         self.config = config or get_default_memory_config()
         
@@ -65,6 +67,15 @@ class MemoryManager:
         # Cache for query embeddings (avoids redundant API calls within a session)
         self._embedding_cache = EmbeddingCache()
 
+        # Cloud memory (Mem0) — optional second tier. Local SQLite/files remain
+        # the offline source of truth; Mem0 adds cross-session semantic recall.
+        self.mem0 = mem0_client
+        if self.mem0 is None:
+            try:
+                from agent.memory.mem0_client import mem0_from_config
+                self.mem0 = mem0_from_config()
+            except Exception:
+                self.mem0 = None
 
         # Initialize memory flush manager
         workspace_dir = self.config.get_workspace()
@@ -169,6 +180,15 @@ class MemoryManager:
             self.config.keyword_weight
         )
 
+        # Mem0 cloud semantic tier (best-effort; never fails the local search)
+        mem0_results = self._search_mem0(
+            query=query,
+            user_id=user_id,
+            max_results=max_results,
+        )
+        if mem0_results:
+            merged = self._merge_with_mem0(merged, mem0_results)
+
         # Filter by min score and limit
         filtered = [r for r in merged if r.score >= min_score]
         return filtered[:max_results]
@@ -247,6 +267,123 @@ class MemoryManager:
             mtime=int(os.path.getmtime(__file__)),  # Use current time
             size=len(content)
         )
+
+        # Dual-write to Mem0 (cloud). Failures are non-fatal.
+        self._write_mem0(
+            content,
+            user_id=user_id,
+            metadata={
+                "scope": scope,
+                "source": source,
+                "path": path,
+                **(metadata or {}),
+            },
+        )
+
+    def remember_exchange(
+        self,
+        user_text: str,
+        assistant_text: str,
+        *,
+        user_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Store a conversation exchange in Mem0 for cross-session semantic recall.
+
+        Local MEMORY.md remains curated by the agent; Mem0 extracts durable
+        facts from the full turn automatically.
+        """
+        if not self.mem0 or not getattr(self.mem0, "enabled", False):
+            return
+        user_text = (user_text or "").strip()
+        assistant_text = (assistant_text or "").strip()
+        if not user_text and not assistant_text:
+            return
+        messages = []
+        if user_text:
+            messages.append({"role": "user", "content": user_text})
+        if assistant_text:
+            messages.append({"role": "assistant", "content": assistant_text})
+        try:
+            self.mem0.add_messages(
+                messages,
+                user_id=user_id,
+                metadata=metadata or {"source": "conversation"},
+            )
+        except Exception as e:
+            from common.log import logger
+            logger.debug(f"[MemoryManager] Mem0 remember_exchange failed: {e}")
+
+    def _search_mem0(
+        self,
+        query: str,
+        user_id: Optional[str],
+        max_results: Optional[int],
+    ) -> List[SearchResult]:
+        if not self.mem0 or not getattr(self.mem0, "enabled", False):
+            return []
+        try:
+            hits = self.mem0.search(
+                query,
+                limit=max_results or self.config.max_results,
+                user_id=user_id,
+            )
+        except Exception as e:
+            from common.log import logger
+            logger.debug(f"[MemoryManager] Mem0 search failed: {e}")
+            return []
+        results: List[SearchResult] = []
+        for hit in hits:
+            score = float(getattr(hit, "score", 0.0) or 0.0)
+            # Mem0 scores can be uncalibrated; floor at 0.35 so they surface
+            # but do not dominate strong local hits.
+            if score <= 0:
+                score = 0.55
+            results.append(SearchResult(
+                path="mem0://cloud",
+                start_line=0,
+                end_line=0,
+                score=min(1.0, score),
+                snippet=hit.content,
+                source="mem0",
+                user_id=user_id,
+            ))
+        return results
+
+    def _merge_with_mem0(
+        self,
+        local: List[SearchResult],
+        mem0: List[SearchResult],
+    ) -> List[SearchResult]:
+        """Union Mem0 hits with local results, de-duping near-identical snippets."""
+        seen = set()
+        merged: List[SearchResult] = []
+
+        def _key(text: str) -> str:
+            return " ".join((text or "").lower().split())[:200]
+
+        for r in local + mem0:
+            k = _key(r.snippet)
+            if not k or k in seen:
+                continue
+            seen.add(k)
+            merged.append(r)
+        merged.sort(key=lambda r: r.score, reverse=True)
+        return merged
+
+    def _write_mem0(
+        self,
+        content: str,
+        user_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        if not self.mem0 or not getattr(self.mem0, "enabled", False):
+            return
+        try:
+            self.mem0.add(content, user_id=user_id, metadata=metadata)
+        except Exception as e:
+            from common.log import logger
+            logger.debug(f"[MemoryManager] Mem0 write failed: {e}")
     
     async def sync(self, force: bool = False):
         """

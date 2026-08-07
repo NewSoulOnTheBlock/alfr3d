@@ -429,6 +429,16 @@ def _build_memory_section(memory_manager: Any, tools: Optional[List[Any]], langu
             f"- `memory/YYYY-MM-DD.md`: daily memory; today is `memory/{today_file}`",
             "- `knowledge/`: structured knowledge base (see the knowledge system below)",
             "",
+        ]
+        if getattr(memory_manager, "mem0", None):
+            lines += [
+                "**Mem0 cloud memory** is enabled and integral to recall:",
+                "- `memory_search` queries local index **and** Mem0 semantic cloud memory",
+                "- Important turns are dual-written to Mem0 automatically; still update MEMORY.md for curated facts",
+                "- Prefer MEMORY.md for durable identity/preferences; use `memory_search` for fuzzy recall",
+                "",
+            ]
+        lines += [
             "### Writing memory",
             "",
             "In the following cases, **proactively** write info to memory files (no need to tell the user):",
@@ -467,6 +477,16 @@ def _build_memory_section(memory_manager: Any, tools: Optional[List[Any]], langu
             f"- `memory/YYYY-MM-DD.md`: 每日记忆，今天是 `memory/{today_file}`",
             "- `knowledge/`: 结构化知识库（见下方知识系统）",
             "",
+        ]
+        if getattr(memory_manager, "mem0", None):
+            lines += [
+                "**Mem0 云记忆已启用**，是记忆系统的一体部分：",
+                "- `memory_search` 同时检索本地索引与 Mem0 语义云记忆",
+                "- 重要对话会自动双写 Mem0；仍需更新 MEMORY.md 作为精选事实",
+                "- 身份/偏好优先 MEMORY.md；模糊回忆用 `memory_search`",
+                "",
+            ]
+        lines += [
             "### 写入记忆",
             "",
             "遇到以下情况时，**主动**将信息写入记忆文件（无需告知用户）：",

@@ -716,6 +716,14 @@ class AgentBridge:
                         resolved_agent_id,
                         create_if_missing=not pre_persisted,
                     )
+
+            # Dual-write conversation exchange to Mem0 (cloud semantic memory).
+            # Local SQLite/MEMORY.md stay authoritative offline; Mem0 extracts
+            # durable facts for cross-session recall.
+            try:
+                self._maybe_mem0_remember(agent, query, context, response)
+            except Exception as e:
+                logger.debug(f"[AgentBridge] Mem0 remember skipped: {e}")
             
             # Record this user turn for the self-evolution idle trigger. Skip
             # scheduler-injected / scheduled-task sessions so internal runs do
@@ -986,6 +994,49 @@ class AgentBridge:
                 f"[AgentBridge] Failed to pre-persist user message for session={session_id}: {e}"
             )
             return False
+
+    def _maybe_mem0_remember(self, agent, query: str, context, response: str = "") -> None:
+        """Push this turn into Mem0 when cloud memory is configured."""
+        from config import conf
+        if conf().get("mem0_enabled", True) is False:
+            return
+        if conf().get("mem0_auto_remember", True) is False:
+            return
+        mm = getattr(agent, "memory_manager", None)
+        if mm is None or not getattr(mm, "mem0", None):
+            return
+        assistant_text = (response or "").strip()
+        if not assistant_text:
+            new_messages = list(getattr(agent, "_last_run_new_messages", []) or [])
+            for msg in reversed(new_messages):
+                if msg.get("role") != "assistant":
+                    continue
+                content = msg.get("content")
+                if isinstance(content, str):
+                    assistant_text = content
+                    break
+                if isinstance(content, list):
+                    parts = []
+                    for block in content:
+                        if isinstance(block, dict) and block.get("type") == "text":
+                            parts.append(block.get("text") or "")
+                        elif isinstance(block, str):
+                            parts.append(block)
+                    assistant_text = "\n".join(parts).strip()
+                    if assistant_text:
+                        break
+        session_id = None
+        if context is not None:
+            session_id = context.get("session_id") or context.get("receiver")
+        mm.remember_exchange(
+            query or "",
+            assistant_text or "",
+            user_id=None,  # use configured mem0_user_id (stable across sessions)
+            metadata={
+                "channel": (context.get("channel_type") if context else "") or "",
+                "session_id": session_id or "",
+            },
+        )
 
     def _persist_messages(
         self,
