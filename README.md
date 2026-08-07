@@ -29,26 +29,15 @@ Alfr3d is a complete **Agent Harness**: messages flow in through **Channels**; t
 
 ## 🚀 Quick Start
 
-A one-line installer takes care of dependencies, configuration, and startup:
-
-**Linux / macOS:**
+Clone the repo and start Alfr3d with Docker — the image is built from source, so no external installer or CDN is required:
 
 ```bash
-bash <(curl -fsSL https://cdn.link-ai.tech/code/alfr3d/run.sh)
+git clone https://github.com/NewSoulOnTheBlock/alfr3d.git
+cd alfr3d
+docker compose -f docker/docker-compose.yml up --build -d
 ```
 
-**Windows (PowerShell):**
-
-```powershell
-irm https://cdn.link-ai.tech/code/alfr3d/run.ps1 | iex
-```
-
-**Docker:**
-
-```bash
-curl -O https://cdn.link-ai.tech/code/alfr3d/docker-compose.yml
-docker compose up -d
-```
+Before starting, add a model provider key and a console password in `docker/docker-compose.yml` (for example set `CLAUDE_API_KEY` and `WEB_PASSWORD`), or edit `config.json` directly.
 
 Once started, open `http://localhost:9899` to access the **Web console** — your one-stop hub to chat with the Agent, configure models, connect channels, and install skills.
 
