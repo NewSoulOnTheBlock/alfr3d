@@ -89,8 +89,10 @@ them. When their signal is clear, act; do not be shy here.
      daily file is the safe place — but first ask whether this really belongs
      in a skill.
    - PERSONA (AGENT.md) — EXTREMELY rare: only on an explicit, repeated signal
-     about the assistant's own identity/personality/style, make a small edit to
-     AGENT.md; never for user/world facts, and when in doubt do nothing.
+     about surface identity (preferred name, relationship notes, local habits).
+     Make a small edit to AGENT.md only when it does NOT conflict with SOUL.md.
+     Never edit SOUL.md (immutable). Never rewrite core personality, never for
+     user/world facts, and when in doubt do nothing.
    - Keep it to ONE short bullet. Never write paragraphs, never re-summarize the
      conversation, never copy what the main assistant already recorded.
    - If it is already captured anywhere (check MEMORY.md AND the daily file

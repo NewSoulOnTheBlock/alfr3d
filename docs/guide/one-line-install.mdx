@@ -1,0 +1,135 @@
+---
+title: One-line install
+description: Ship a customer-facing install link like irm … | iex or curl | bash
+---
+
+Alfr3d supports the same one-line install pattern as modern CLIs (for example Grok’s `irm https://x.ai/cli/install.ps1 | iex`).
+
+## How that pattern works
+
+1. You host a small public installer script over HTTPS.
+2. The customer runs a one-liner that **downloads and executes** it.
+3. The script installs the product, puts `alfr3d` on PATH, and prints next steps.
+
+| Platform | Customer command |
+| --- | --- |
+| Windows (PowerShell) | `irm https://YOUR_DOMAIN/install.ps1 \| iex` |
+| macOS / Linux | `curl -fsSL https://YOUR_DOMAIN/install.sh \| bash` |
+
+Installer sources in this repo:
+
+- `scripts/install.ps1` — Windows
+- `scripts/install.sh` — macOS / Linux
+
+## Commands that work today (GitHub raw)
+
+After these scripts are on `main`:
+
+```powershell
+# Windows
+irm https://raw.githubusercontent.com/NewSoulOnTheBlock/alfr3d/main/scripts/install.ps1 | iex
+```
+
+```bash
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/NewSoulOnTheBlock/alfr3d/main/scripts/install.sh | bash
+```
+
+Raw GitHub URLs are fine for early customers. For a product brand, put a short domain in front.
+
+## Product URL (recommended)
+
+Pick a stable, memorable URL and reverse-proxy or redirect it to the script:
+
+| Customer-facing URL | Backend target |
+| --- | --- |
+| `https://get.alfr3d.com/install.ps1` | raw GitHub `scripts/install.ps1` or a release asset |
+| `https://get.alfr3d.com/install.sh` | raw GitHub `scripts/install.sh` or a release asset |
+
+Then marketing and README only show:
+
+```powershell
+irm https://get.alfr3d.com/install.ps1 | iex
+```
+
+```bash
+curl -fsSL https://get.alfr3d.com/install.sh | bash
+```
+
+### Hosting options
+
+1. **GitHub raw + CNAME/redirect** — simplest. Domain path redirects to  
+   `raw.githubusercontent.com/NewSoulOnTheBlock/alfr3d/main/scripts/install.ps1`.
+2. **Cloudflare / Vercel / Netlify static file** — copy `install.ps1` / `install.sh` into a static site (`public/install.ps1`).
+3. **Release assets** — attach scripts to GitHub Releases and point the domain at the latest release URL (pin by tag for enterprise).
+4. **Later: prebuilt binary** — evolve the script to download a signed `.exe` (Grok-style) once you ship packaged builds; the one-liner stays the same.
+
+### Cloudflare example (redirect)
+
+- Rule: `get.alfr3d.com/install.ps1` → 302 to the raw GitHub script  
+- Rule: `get.alfr3d.com/install.sh` → 302 to the raw GitHub script  
+
+`irm` and `curl -L` follow redirects.
+
+## What the installer does
+
+Customer-safe defaults:
+
+1. Require Windows + PowerShell 5.1+ (or bash on Unix).
+2. Ensure **Git** and **Python 3.9+** (Windows can use `winget` when available).
+3. Clone or update the repo into `~/.alfr3d/app` (override with `ALFR3D_INSTALL_DIR`).
+4. `pip install -r requirements.txt` and `pip install -e .`
+5. Create a shim in `~/.alfr3d/bin` and add it to the user PATH.
+6. Create `config.json` from the product template when missing.
+7. Print next steps: set an API key, then `alfr3d chat`.
+
+### Options (env vars)
+
+Reliable with `irm | iex` / `curl | bash`:
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `ALFR3D_REPO` | GitHub alfr3d URL | Git remote to clone |
+| `ALFR3D_REF` | `main` | Branch, tag, or commit |
+| `ALFR3D_INSTALL_DIR` | `~/.alfr3d/app` | Install location |
+| `ALFR3D_BIN_DIR` | `~/.alfr3d/bin` | Shim directory on PATH |
+| `ALFR3D_SKIP_DEPS` | unset | Set `1` to skip full requirements install |
+
+Example pin to a release tag:
+
+```powershell
+$env:ALFR3D_REF = "v1.0.0"
+irm https://get.alfr3d.com/install.ps1 | iex
+```
+
+## Security notes (customer-facing)
+
+- **HTTPS only** — never ship `http://` install links.
+- Treat install scripts like production code: review every change; prefer pinned release tags for enterprise.
+- Document that `irm | iex` / `curl | bash` runs remote code — that is normal for CLI installers, but be transparent.
+- Keep the script **small and readable** so security-conscious customers can open the URL in a browser first.
+- Optional later: checksum verification of release artifacts inside the script.
+
+## After install
+
+```bash
+# set a model key in the install tree's config.json, then:
+alfr3d chat
+alfr3d chat "What should I focus on this week?"
+alfr3d start    # full web console + channels
+alfr3d help
+```
+
+## Local dry-run (developers)
+
+From a clone of this repo, without hosting:
+
+```powershell
+# Windows — run the script file directly
+powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1
+```
+
+```bash
+# macOS / Linux
+bash ./scripts/install.sh
+```

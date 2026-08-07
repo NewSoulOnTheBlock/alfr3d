@@ -36,6 +36,30 @@ Alfr3d is a complete **Agent Harness**: messages flow in through **Channels**; t
 
 ## 🚀 Quick Start
 
+### One-line install (customer CLI)
+
+After the install scripts are on `main` (or hosted on your product domain):
+
+```powershell
+# Windows PowerShell
+irm https://raw.githubusercontent.com/NewSoulOnTheBlock/alfr3d/main/scripts/install.ps1 | iex
+```
+
+```bash
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/NewSoulOnTheBlock/alfr3d/main/scripts/install.sh | bash
+```
+
+Recommended product branding (point your domain at the same scripts):
+
+```powershell
+irm https://get.alfr3d.com/install.ps1 | iex
+```
+
+Then set a model API key in `config.json` and run `alfr3d chat`. See [One-line install](docs/guide/one-line-install.mdx).
+
+### Docker
+
 Clone the repo and start Alfr3d with Docker — the image is built from source, so no external installer or CDN is required:
 
 ```bash
@@ -50,15 +74,25 @@ Once started, open `http://localhost:9899` to access the **Web console** — you
 
 > Deploying on a server? Set `web_host` to `0.0.0.0` in `config.json` to make the console reachable from outside, and set `web_password` to protect it. Don't forget to open port `9899` in your firewall or security group.
 
-After installation, manage the service with the alfr3d CLI:
+### CLI (customer entrypoint)
+
+From the project root (or after `pip install -e .`):
 
 ```bash
-alfr3d start | stop | restart        # service control
-alfr3d status | logs                  # status and logs
-alfr3d update                         # pull latest code and restart
-alfr3d skill install <name>           # install a skill
-alfr3d install-browser                # install browser automation
+# Talk to Alfr3d in the terminal (full agent harness + SOUL identity)
+alfr3d chat
+alfr3d chat "What should I focus on this week?"
+alfr3d "How do I build business credit?"
+
+# Service control (web console + channels)
+alfr3d start | stop | restart
+alfr3d status | logs
+alfr3d update
+alfr3d skill install <name>
+alfr3d install-browser
 ```
+
+Put a model API key in `config.json` first (created from `config-template.json` on first chat if missing).
 
 > 💻 Desktop client: the **Alfr3d Desktop client** (macOS / Windows) bundles the backend, ready to use out of the box.
 

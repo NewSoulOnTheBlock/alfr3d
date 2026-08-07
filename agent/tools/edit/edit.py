@@ -9,6 +9,7 @@ from typing import Dict, Any
 from agent.tools.base_tool import BaseTool, ToolResult
 from common.utils import expand_path
 from agent.tools.utils.credentials import DENIED_MESSAGE, is_credential_path
+from agent.prompt.soul import SOUL_DENIED_MESSAGE, is_soul_path
 from agent.tools.utils.diff import (
     strip_bom,
     detect_line_ending,
@@ -81,6 +82,9 @@ class Edit(BaseTool):
         # result carries a diff whose context lines would expose the secrets.
         if is_credential_path(absolute_path):
             return ToolResult.fail(DENIED_MESSAGE)
+
+        if is_soul_path(absolute_path):
+            return ToolResult.fail(SOUL_DENIED_MESSAGE)
 
         # Check if file exists
         if not os.path.exists(absolute_path):

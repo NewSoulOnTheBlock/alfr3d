@@ -49,6 +49,24 @@ class TerminalAgentRenderer:
         self._has_output = False
         # Track tool execution start time as a fallback when the event omits it
         self._tool_started_at = {}
+        self._lang_en = self._resolve_lang_en()
+
+    @staticmethod
+    def _resolve_lang_en() -> bool:
+        try:
+            from common import i18n
+            return i18n.get_language() == "en"
+        except Exception:
+            return True
+
+    def _thinking_label(self) -> str:
+        return "thinking  " if self._lang_en else "💭 思考  "
+
+    def _file_label(self, label: str) -> str:
+        return f"📎 file: {label}" if self._lang_en else f"📎 文件: {label}"
+
+    def _cancelled_label(self) -> str:
+        return "⏹ stopped" if self._lang_en else "⏹ 已中止"
 
     def _print(self, text, end="", flush=True):
         sys.stdout.write(text)
@@ -91,7 +109,7 @@ class TerminalAgentRenderer:
         data = event.get("data", {}) or {}
 
         if event_type == "agent_start":
-            self._print("\n" + _Style.wrap("Agent: ", _Style.BOLD, _Style.GREEN), end="\n")
+            self._print("\n" + _Style.wrap("Alfr3d: ", _Style.BOLD, _Style.GREEN), end="\n")
 
         elif event_type == "reasoning_update":
             delta = data.get("delta", "")
@@ -100,7 +118,8 @@ class TerminalAgentRenderer:
             if self._answer_active:
                 self._close_section()
             if not self._reasoning_active:
-                self._print(_Style.wrap("💭 思考  ", _Style.DIM, _Style.MAGENTA), end="\n")
+                label = self._thinking_label()
+                self._print(_Style.wrap(label, _Style.DIM, _Style.MAGENTA), end="\n")
                 self._reasoning_active = True
             self._print(_Style.wrap(delta, _Style.DIM, _Style.ITALIC))
 
@@ -150,7 +169,7 @@ class TerminalAgentRenderer:
             file_path = data.get("path", "")
             file_name = data.get("file_name", "")
             label = file_name or file_path
-            self._print(_Style.wrap(f"📎 文件: {label}", _Style.BLUE), end="\n")
+            self._print(_Style.wrap(self._file_label(label), _Style.BLUE), end="\n")
 
         elif event_type == "error":
             self._close_section()
@@ -159,7 +178,7 @@ class TerminalAgentRenderer:
 
         elif event_type == "agent_cancelled":
             self._close_section()
-            self._print(_Style.wrap("⏹ 已中止", _Style.YELLOW), end="\n")
+            self._print(_Style.wrap(self._cancelled_label(), _Style.YELLOW), end="\n")
 
         elif event_type == "agent_end":
             self._close_section()
@@ -213,7 +232,7 @@ class TerminalChannel(ChatChannel):
             image_storage.seek(0)
             img = Image.open(image_storage)
             if not streamed:
-                print("\nAgent: ")
+                print("\nAlfr3d: ")
             print("<IMAGE>")
             img.show()
         elif reply.type == ReplyType.IMAGE_URL:  # download image from url
@@ -230,7 +249,7 @@ class TerminalChannel(ChatChannel):
             image_storage.seek(0)
             img = Image.open(image_storage)
             if not streamed:
-                print("\nAgent: ")
+                print("\nAlfr3d: ")
             print(img_url)
             img.show()
         else:
@@ -239,9 +258,9 @@ class TerminalChannel(ChatChannel):
             if streamed:
                 print()
             else:
-                print("\nAgent: ")
+                print("\nAlfr3d: ")
                 print(reply.content)
-        print("\nUser: ", end="")
+        print("\nYou: ", end="")
         sys.stdout.flush()
         return
 

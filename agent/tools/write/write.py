@@ -9,6 +9,7 @@ from pathlib import Path
 
 from agent.tools.base_tool import BaseTool, ToolResult
 from agent.tools.utils.credentials import is_credential_path
+from agent.prompt.soul import SOUL_DENIED_MESSAGE, is_soul_path
 from agent.tools.utils.diff import looks_like_line_numbered_block
 from agent.tools.utils.file_state import note_write, staleness_warning
 from agent.tools.utils.syntax_check import review as syntax_review
@@ -136,6 +137,9 @@ class Write(BaseTool):
         # adds symlink resolution and the /proc environ aliases.
         if real.endswith(os.path.join(".alfr3d", ".env")) or is_credential_path(absolute):
             raise PermissionError("writing to ~/.alfr3d/.env is not allowed")
+
+        if is_soul_path(absolute) or is_soul_path(real):
+            raise PermissionError(SOUL_DENIED_MESSAGE)
 
         # Optional workspace confinement. Off by default to preserve existing
         # behavior; enable via config.json tools.write.restrict_to_workspace.
