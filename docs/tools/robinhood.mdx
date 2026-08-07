@@ -30,8 +30,19 @@ require per-order approval.
 
 ## 1. Add the MCP server
 
-Merge the `robinhood` entry into your host `./alfr3d/mcp.json` (the repo ships an
-example at `mcp.robinhood.example.json`):
+**Easiest — one command.** This writes the server entry into your `mcp.json`
+(preserving any other servers) and, on a server deploy, sets the OAuth callback
+base for you:
+
+```bash
+alfr3d robinhood connect --redirect-base http://YOUR_SERVER_IP:9899
+```
+
+(Omit `--redirect-base` when running locally.) Check state any time with
+`alfr3d robinhood status`, and remove it with `alfr3d robinhood disconnect`.
+
+**Manual alternative.** Merge the `robinhood` entry into your host
+`./alfr3d/mcp.json` (the repo ships an example at `mcp.robinhood.example.json`):
 
 ```json
 {

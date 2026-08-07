@@ -11,7 +11,8 @@ its tools appear as normal tools and you invoke them directly.
 
 > **Requires:** the `robinhood` MCP server configured in `~/alfr3d/mcp.json` and
 > authorized via OAuth. If the tools below are not available, the server is not
-> connected — see `docs/tools/robinhood.mdx` for setup. Do not fabricate results.
+> connected — set it up with `alfr3d robinhood connect` (see
+> `docs/tools/robinhood.mdx`). Do not fabricate results.
 
 ## Hard constraints (Robinhood-imposed)
 
