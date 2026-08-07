@@ -1810,6 +1810,7 @@ class WebChannel(ChatChannel):
             '/api/logs', 'LogsHandler',
             '/api/version', 'VersionHandler',
             '/mcp/oauth/callback', 'McpOAuthCallbackHandler',
+            '/api/integrations/robinhood', 'RobinhoodIntegrationHandler',
             '/assets/(.*)', 'AssetsHandler',
         )
         app = web.application(urls, globals(), autoreload=False)
@@ -1875,6 +1876,64 @@ class HealthHandler:
         web.header('Content-Type', 'application/json; charset=utf-8')
         web.header('Cache-Control', 'no-store')
         return json.dumps({"status": "ok"})
+
+
+class RobinhoodIntegrationHandler:
+    """Status + one-click connect for the Robinhood Trading MCP (web console).
+
+    GET  -> {status, configured, authorized}
+    POST -> ensures the mcp.json entry, then either reports it is already
+            connected or starts OAuth and returns an authorization URL for the
+            browser to open. The existing /mcp/oauth/callback finishes the flow.
+    """
+
+    def GET(self):
+        web.header('Content-Type', 'application/json; charset=utf-8')
+        try:
+            from cli.commands.robinhood import (
+                ROBINHOOD_SERVER_NAME, _mcp_config_path, _read_json)
+            from agent.tools.mcp.mcp_oauth import load_server_record
+            servers = _read_json(_mcp_config_path()).get('mcpServers', {})
+            configured = isinstance(servers, dict) and ROBINHOOD_SERVER_NAME in servers
+            rec = load_server_record(ROBINHOOD_SERVER_NAME) or {}
+            authorized = bool(rec.get('access_token') or rec.get('refresh_token'))
+            return json.dumps({'status': 'success', 'configured': configured, 'authorized': authorized})
+        except Exception as e:
+            logger.warning(f"[Robinhood] status failed: {e}")
+            return json.dumps({'status': 'error', 'message': str(e)})
+
+    def POST(self):
+        web.header('Content-Type', 'application/json; charset=utf-8')
+        try:
+            from cli.commands.robinhood import (
+                ROBINHOOD_SERVER_NAME, ROBINHOOD_MCP_URL,
+                _mcp_config_path, _read_json, _write_json)
+            from agent.tools.mcp.mcp_oauth import load_server_record
+            from agent.tools.mcp.mcp_client import begin_web_oauth
+
+            # 1. Ensure the server entry exists in mcp.json (preserve others).
+            path = _mcp_config_path()
+            cfg = _read_json(path)
+            servers = cfg.get('mcpServers')
+            if not isinstance(servers, dict):
+                servers = {}
+                cfg['mcpServers'] = servers
+            servers[ROBINHOOD_SERVER_NAME] = {'type': 'streamable-http', 'url': ROBINHOOD_MCP_URL}
+            _write_json(path, cfg)
+
+            # 2. Already authorized? Nothing more to do.
+            rec = load_server_record(ROBINHOOD_SERVER_NAME) or {}
+            if rec.get('access_token') or rec.get('refresh_token'):
+                return json.dumps({'status': 'connected'})
+
+            # 3. Start OAuth and hand the URL to the browser.
+            auth_url, err = begin_web_oauth(ROBINHOOD_SERVER_NAME, ROBINHOOD_MCP_URL)
+            if err:
+                return json.dumps({'status': 'error', 'message': err})
+            return json.dumps({'status': 'authorize', 'auth_url': auth_url})
+        except Exception as e:
+            logger.warning(f"[Robinhood] connect failed: {e}")
+            return json.dumps({'status': 'error', 'message': str(e)})
 
 
 class McpOAuthCallbackHandler:

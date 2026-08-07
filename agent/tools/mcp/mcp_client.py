@@ -837,3 +837,51 @@ class McpClientRegistry:
                 logger.warning(f"[MCP] Error shutting down '{client.name}': {e}")
 
         logger.info("[MCP] All servers shut down")
+
+
+def begin_web_oauth(server_name: str, resource_url: str, scope: str = ""):
+    """Start a remote-MCP OAuth flow and return its authorization URL.
+
+    Used by the web console's one-click "Connect" actions. Probes the resource
+    for its WWW-Authenticate challenge, registers an OAuth client, and returns
+    the URL the user must open. A pending handler is registered (inside
+    build_authorization_url), so the existing /mcp/oauth/callback route finishes
+    the token exchange and brings the server online — the same path the
+    automatic 401 flow uses.
+
+    Returns (auth_url, None) on success, or (None, error_message) on failure.
+    """
+    www_auth = ""
+    try:
+        req = urllib.request.Request(
+            resource_url,
+            method="POST",
+            data=b'{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}',
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json, text/event-stream",
+            },
+        )
+        urllib.request.urlopen(req, timeout=15)
+    except urllib.error.HTTPError as e:
+        if e.code == 401:
+            www_auth = e.headers.get("WWW-Authenticate", "") or ""
+    except Exception:
+        # Network hiccup on the probe is non-fatal; discovery can still work.
+        pass
+
+    try:
+        handler = OAuthHandler(
+            server_name=server_name,
+            resource_url=resource_url,
+            redirect_uri=_oauth_redirect_uri(),
+            scope=scope,
+        )
+        if not handler.ensure_registered(www_auth):
+            return None, "OAuth discovery or client registration failed"
+        url = handler.build_authorization_url()
+        if not url:
+            return None, "Failed to build authorization URL"
+        return url, None
+    except Exception as e:
+        return None, str(e)

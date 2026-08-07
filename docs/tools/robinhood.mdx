@@ -30,7 +30,13 @@ require per-order approval.
 
 ## 1. Add the MCP server
 
-**Easiest — one command.** This writes the server entry into your `mcp.json`
+**Easiest — the Web console.** Open **Skills** in the console, find the
+**Integrations → Robinhood** card, and click **Connect**. It writes the `mcp.json`
+entry and opens the Robinhood authorization page in a new tab; approve it and the
+card flips to **Connected**. (On a server deploy, set `mcp_oauth_redirect_base`
+first — see step 2.)
+
+**Or — one command.** This writes the server entry into your `mcp.json`
 (preserving any other servers) and, on a server deploy, sets the OAuth callback
 base for you:
 
