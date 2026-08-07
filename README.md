@@ -177,4 +177,3 @@ A single Agent instance can serve multiple channels in parallel. Most channels c
 
 1. This project is licensed under the MIT License and is intended for technical research and learning. You are responsible for complying with applicable laws and regulations in your jurisdiction; the maintainers assume no liability for any consequences arising from use of this project.
 2. **Cost & safety:** Agent mode consumes substantially more tokens than regular chat — pick models that balance quality and cost. The Agent has access to your local operating system, so only deploy it in trusted environments.
-3. Alfr3d is a pure open-source project and does not participate in, authorize, or issue any cryptocurrency.
