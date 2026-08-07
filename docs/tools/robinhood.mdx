@@ -1,0 +1,121 @@
+---
+title: Robinhood Trading
+description: Connect ALFR3D to the Robinhood Trading MCP to read your portfolio and place equity trades
+---
+
+ALFR3D connects to the [Robinhood Trading MCP](https://robinhood.com/us/en/agentic-trading/)
+(`https://agent.robinhood.com/mcp/trading`) using the standard [MCP](/tools/mcp)
+integration. Once connected, ALFR3D can read your accounts, positions, portfolio,
+order history, and live quotes, and — in the dedicated Agentic account — place and
+cancel equity orders.
+
+<Warning>
+**Autonomous trading.** In the default setup all Robinhood tools, including
+`place_equity_order` and `cancel_equity_order`, are exposed to the agent with **no
+confirmation gate** — ALFR3D can place and cancel real orders on its own. Your
+blast radius is limited by Robinhood's design: agent trades only touch a
+dedicated, separately-funded **Agentic account**; all your other accounts are
+read-only. Only fund that account with what you are comfortable letting the agent
+trade. See [Adding a confirmation gate](#adding-a-confirmation-gate-optional) to
+require per-order approval.
+</Warning>
+
+## Prerequisites
+
+1. **Enable Robinhood agentic trading** and **fund the Agentic account.** Agent
+   trades can only happen in that dedicated account; every other account stays
+   read-only. Equities only during the beta.
+2. A running ALFR3D with the **web console** reachable (default port `9899`) — the
+   OAuth callback is served there.
+
+## 1. Add the MCP server
+
+Merge the `robinhood` entry into your host `./alfr3d/mcp.json` (the repo ships an
+example at `mcp.robinhood.example.json`):
+
+```json
+{
+  "mcpServers": {
+    "robinhood": {
+      "type": "streamable-http",
+      "url": "https://agent.robinhood.com/mcp/trading"
+    }
+  }
+}
+```
+
+For Docker deployments the host's `./alfr3d` directory is already mounted to
+`/home/agent/alfr3d`, so dropping `mcp.json` into `./alfr3d/` is enough. If a
+different OAuth scope is required, add a `"scope"` field — the authorization step
+will tell you if one is needed.
+
+## 2. Authorize (OAuth on a server)
+
+The Robinhood MCP requires OAuth. ALFR3D's [built-in OAuth flow](/tools/mcp#web-authorization-oauth)
+handles tokens for you — you never paste a token by hand.
+
+Because this runs on a **remote server**, set the callback base so the login can
+reach your console. In `config.json`:
+
+```json
+{
+  "mcp_oauth_redirect_base": "http://YOUR_SERVER_IP:9899"
+}
+```
+
+Then:
+
+1. Make sure port `9899` is open in your firewall / security group.
+2. Start (or restart) ALFR3D. On first load the Robinhood server returns `401`
+   and ALFR3D **prints an authorization link to the logs**:
+   ```bash
+   docker compose -f docker/docker-compose.yml logs -f | grep -i mcp
+   ```
+3. Open that link in a browser, log into Robinhood, and approve access to the
+   **Agentic account**. The server comes online immediately after approval.
+
+<Note>
+**Persist your tokens.** Tokens are stored in `~/.alfr3d/mcp_oauth.json`
+(`/home/agent/.alfr3d/` in the container). Make sure that directory is on a
+mounted volume, or you will have to re-authorize after every restart. Tokens
+refresh automatically on expiry.
+</Note>
+
+## 3. Verify
+
+Ask ALFR3D a **read-only** question first — no trade required:
+
+> "List my Robinhood accounts and show my portfolio value."
+
+ALFR3D should call `get_accounts` / `get_portfolio` and return real data. If the
+tools are missing, check that `mcp.json` is valid and look for
+`[MCP] Server 'robinhood' load failed` in the logs.
+
+## Available tools
+
+**Read-only:** `get_accounts`, `get_portfolio`, `get_equity_positions`,
+`get_equity_quotes`, `get_equity_orders`, `search`, plus watchlist read/management.
+
+**Trade execution:** `review_equity_order` (simulate + warnings, no execution),
+`place_equity_order` (real buy/sell), `cancel_equity_order`.
+
+The bundled **`robinhood-trading` skill** teaches ALFR3D the recommended
+`review_equity_order → place_equity_order` sequence and Robinhood's constraints.
+
+## Adding a confirmation gate (optional)
+
+To require explicit per-order approval instead of autonomous execution, intercept
+the tool call at the single MCP execution choke point,
+`MCPClient.call_tool()` in `agent/tools/mcp/mcp_client.py`: block a configurable
+set of tool names (e.g. `place_equity_order`, `cancel_equity_order`) until the
+user confirms, driven by a `config.json` flag that mirrors the existing
+`mcp_stdio_command_allowlist` pattern. This is intentionally not enabled by
+default.
+
+## Safety notes
+
+- ALFR3D is not a licensed financial advisor and does not give personalized
+  investment advice; it executes what you ask and reports data.
+- Keep the Agentic account funded only to the level of trading you want to
+  delegate.
+- Review order history regularly with `get_equity_orders` or in the Robinhood app.
