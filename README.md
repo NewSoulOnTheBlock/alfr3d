@@ -14,6 +14,7 @@ Alfr3d is lightweight, easy to deploy, and built to extend. Plug in any major LL
 | Evolution | Self-Evolution reviews conversations automatically to improve skills, follow up on unfinished tasks, and consolidate memory and knowledge, growing through everyday use |
 | Skills | One-click install from Skill Hub, GitHub, ClawHub; or create custom skills via natural-language conversation |
 | Tools | Built-in file I/O, terminal, browser, scheduler, memory retrieval, web search, and 10+ more tools — with native MCP integration |
+| Trading | Manage a Robinhood **Agentic portfolio** — read holdings and live quotes, and review, place, or cancel equity trades via the Robinhood Trading MCP |
 | Channels | Integrates with Web, WeChat, Feishu, DingTalk, WeCom, QQ, Official Accounts, Telegram, and Slack |
 | Multimodal | First-class support for text, images, voice, and files — recognition, generation, and delivery |
 | Models | Claude, GPT, Gemini, DeepSeek, Qwen, GLM, Kimi, MiniMax, Doubao, and more — swap providers from the Web console with one click |
@@ -134,6 +135,36 @@ A single Agent instance can serve multiple channels in parallel. Most channels c
 
 <br/>
 
+## 📈 Robinhood Agentic Portfolio
+
+Putting your money to work in the market is one of the time-tested ways to grow it
+— and Alfr3d can help you run a portfolio hands-off. Through Robinhood's Agentic
+Trading MCP, Alfr3d connects to a dedicated, separately-funded **Agentic account**
+and can read your portfolio, pull live quotes, review orders, and place or cancel
+equity trades on your behalf.
+
+Set it up in one command:
+
+```bash
+alfr3d robinhood connect --redirect-base http://YOUR_IP:9899   # running locally? omit the flag
+```
+
+Then restart, approve the OAuth login in your browser, and ask Alfr3d things like
+*"how is my portfolio doing?"* or *"buy 5 shares of AAPL."* Check state any time
+with `alfr3d robinhood status`. See [docs/tools/robinhood.mdx](docs/tools/robinhood.mdx)
+for full setup.
+
+- **Sandboxed by design:** agent trades only touch the dedicated Agentic account; every other Robinhood account stays read-only.
+- **Equities only** during Robinhood's beta (options rolling out).
+
+> ⚠️ **Trading involves risk, including the possible loss of principal.** Alfr3d is
+> not a licensed financial advisor and does not provide investment advice; you are
+> responsible for every order it places on your behalf. Only fund the Agentic
+> account with what you are comfortable letting an agent trade, and review activity
+> regularly.
+
+<br/>
+
 ## 🏷 Changelog
 
 > **2026.07.29:** v2.1.5 — Workspace with file preview, core tool improvements (file search, write-time validation, background commands), context compaction (`/compact`), one-click prompt optimization, security hardening.
@@ -166,3 +197,4 @@ A single Agent instance can serve multiple channels in parallel. Most channels c
 
 1. This project is licensed under the MIT License and is intended for technical research and learning. You are responsible for complying with applicable laws and regulations in your jurisdiction; the maintainers assume no liability for any consequences arising from use of this project.
 2. **Cost & safety:** Agent mode consumes substantially more tokens than regular chat — pick models that balance quality and cost. The Agent has access to your local operating system, so only deploy it in trusted environments.
+3. **Financial risk:** Any trading integration (e.g. the Robinhood Agentic Portfolio) can place real orders with real money. Trading involves risk, including the possible loss of principal. Nothing in this project constitutes financial advice, and the maintainers are not liable for any trading losses. Use the sandboxed Agentic account and only fund it with money you can afford to put at risk.

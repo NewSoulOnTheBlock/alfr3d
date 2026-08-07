@@ -1,0 +1,9 @@
+{
+  "//": "Robinhood Trading MCP — example config. Merge the 'robinhood' entry into your host ./alfr3d/mcp.json (do NOT commit your live mcp.json). See docs/tools/robinhood.mdx for setup and OAuth.",
+  "mcpServers": {
+    "robinhood": {
+      "type": "streamable-http",
+      "url": "https://agent.robinhood.com/mcp/trading"
+    }
+  }
+}
