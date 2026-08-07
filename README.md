@@ -213,40 +213,6 @@ Full history: [Release Notes](https://docs.alfr3d.local/releases/overview)
 
 <br/>
 
-## 🤝 Community & Support
-
-[File an issue](https://github.com/NewSoulOnTheBlock/alfr3d/issues) on GitHub, or scan the QR code below to join our WeChat community:
-
-<img width="130" src="https://img-1317903499.cos.ap-guangzhou.myqcloud.com/docs/open-community.png">
-
-<br/>
-
-## 🔗 Related Projects
-
-- **[Alfr3d Skill Hub](https://github.com/NewSoulOnTheBlock/alfr3d-skill-hub)** — open skill marketplace for AI Agents; works with Alfr3d, OpenClaw, Claude Code, and more
-- **[bot-on-anything](https://github.com/NewSoulOnTheBlock/bot-on-anything)** — lightweight LLM application framework with integrations for Slack, Telegram, Discord, Gmail, and more
-- **[AgentMesh](https://github.com/MinimalFuture/AgentMesh)** — open-source multi-agent framework for solving complex problems through team collaboration
-
-<br/>
-
-## 🏢 Enterprise Services
-
-[**LinkAI**](https://link-ai.tech/) is an all-in-one AI Agent platform for enterprises and developers, offering managed hosting and enterprise-grade support for Alfr3d:
-
-- **🚀 Zero-deployment hosted runtime** — spin up a [Alfr3d online assistant](https://link-ai.tech/alfr3d/create) in under a minute, no server required
-- **🧠 Agent infrastructure** — unified access to LLMs, knowledge bases, databases, skills, and workflows; plug-and-play building blocks that extend what Alfr3d can do
-- **🏢 Team & enterprise features** — workspaces, role-based access, audit logs, and private deployment for production use cases
-
-For enterprise inquiries: sales@simple-future.tech or [scan the QR code](https://cdn.link-ai.tech/consultant.jpg) to reach our team on WeChat.
-
-<br/>
-
-## 🛠️ Development & Contributing
-
-All kinds of contributions are welcome — new features, bug fixes, performance improvements, docs, or sharing your own skills on the [Skill Hub](https://skills.alfr3d.local/submit). See [CONTRIBUTING.md](/CONTRIBUTING.md) to get started, then open an Issue to discuss or send a PR directly.
-
-⭐ Star the project to show your support, and Watch → Custom → Releases to get notified of new versions. PRs and Issues are always welcome.
-
 ## 🌟 Contributors
 
 ![alfr3d contributors](https://contrib.rocks/image?repo=NewSoulOnTheBlock/alfr3d&max=1000)
