@@ -163,7 +163,8 @@
                 "group": "MCP Tools",
                 "pages": [
                   "tools/mcp",
-                  "tools/robinhood"
+                  "tools/robinhood",
+                  "tools/quickbooks"
                 ]
               }
             ]
