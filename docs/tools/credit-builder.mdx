@@ -1,0 +1,67 @@
+---
+title: Credit Builder
+description: Audit your credit, automate FCRA/FDCPA dispute letters via certified mail, and plan business credit
+---
+
+The **credit-builder** skill lets ALFR3D work on **your own credit**: audit your
+FICO profile, plan score improvements, generate and mail dispute letters as USPS
+certified mail (via [Lob](https://lob.com)), track 30-day response deadlines, and
+plan business credit. It is a native port of the ElizaOS credit-builder plugin.
+
+<Warning>
+**Your own credit only.** This is designed for the operator's own credit — not a
+service sold to others (which would make you a Credit Repair Organization under
+CROA, with contract/disclosure obligations). It is **not legal or financial
+advice**. Only dispute items you have a good-faith basis to believe are
+inaccurate; frivolous or knowingly false disputes are unlawful under the FCRA.
+</Warning>
+
+## How it works
+
+Unlike the MCP integrations, this ships as an ALFR3D **skill** with bundled Python
+scripts (`skills/credit-builder/scripts/`) that the agent runs. Its only external
+dependency is **Lob** for certified mail; the FICO analysis runs on the profile
+you provide (it does not pull from the credit bureaus).
+
+## Setup
+
+Set `LOB_API_KEY` (from [dashboard.lob.com](https://dashboard.lob.com)) in the
+environment — e.g. under `environment:` in `docker-compose.yml`, or in
+`config.json`:
+
+```yaml
+environment:
+  LOB_API_KEY: 'test_xxx'   # a test_ key mails nothing; switch to a live key when ready
+```
+
+Profile and dispute history persist in `~/alfr3d/credit/` (on the mounted volume).
+
+## Using it
+
+Just talk to ALFR3D — it selects the skill and runs the scripts:
+
+- **"Analyze my credit"** → runs the FICO-factor audit (payment 35%, utilization
+  30%, age 15%, mix 10%, inquiries 10%) and returns strengths, weaknesses,
+  ranked disputable items, and a prioritized action plan.
+- **"Dispute the ABC collection with a debt validation letter"** → generates the
+  letter and mails it certified (Return Receipt) via Lob, then tracks the 30-day
+  deadline.
+- **"Check my disputes"** → shows pending vs. overdue disputes (an item the
+  bureau fails to verify in 30 days must be deleted under FCRA § 611).
+- **"Help me build business credit"** → coaches the DUNS → net-30 vendor
+  tradelines → PAYDEX → bank/SBA ladder.
+
+## Letter types
+
+19 types spanning FCRA, FDCPA, FCBA, ECOA, HIPAA, and negotiation — e.g.
+`basic_bureau`, `609_verification`, `611_reinvestigation`,
+`method_of_verification`, `identity_theft`, `debt_validation`, `cease_desist`,
+`pay_for_delete`, `goodwill`, `chargeoff_removal`, `unauthorized_inquiry`,
+`hipaa_medical`, `statute_of_limitations`, `intent_to_sue`, `billing_error`.
+
+## Cost & autonomy
+
+Each real certified letter costs ~$9 (~$27 to all three bureaus). Sending is
+**autonomous** — ALFR3D does not pause for confirmation before mailing — so keep
+`LOB_API_KEY` on a `test_` key while rehearsing, and only fund/enable live
+mailing once you trust the flow. Review dispute activity regularly.
