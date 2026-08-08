@@ -2,12 +2,6 @@
 
 Where most assistants answer questions, Alfr3d serves a person. It learns *who you are and why you're here* during setup, keeps that context durably, and works several moves ahead — calm, discreet, and competent. Plug in any major LLM provider, run it 24/7 on a laptop or a server, and reach it from the terminal, the web console, or any major IM platform.
 
-<br/>
-
-> **CA:** `0x76bb1b89d7a614829304ff5dbdd57c6c35f2312f`
-
-<br/>
-
 ## 🌟 Highlights
 
 | Capability | Description |
